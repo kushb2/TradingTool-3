@@ -35,11 +35,13 @@ services:
         value: "30"
       - key: SUPABASE_URL
         sync: false
-      - key: SUPABASE_KEY
-        sync: false
-      - key: SUPABASE_SERVICE_ROLE_KEY
-        sync: false
       - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
+      - key: SUPABASE_DB_URL
+        sync: false
+      - key: SUPABASE_DB_USER
+        sync: false
+      - key: SUPABASE_DB_PASSWORD
         sync: false
       - key: RENDER_EXTERNAL_URL
         sync: false

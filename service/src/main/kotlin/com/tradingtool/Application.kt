@@ -3,7 +3,11 @@ package com.tradingtool
 import com.tradingtool.config.AppConfig
 import com.tradingtool.config.loadAppConfig
 import com.tradingtool.core.telegram.TelegramSender
+import com.tradingtool.core.watchlist.dal.ExposedWatchlistDal
+import com.tradingtool.core.watchlist.dal.WatchlistDatabaseConfig
+import com.tradingtool.core.watchlist.service.WatchlistService
 import com.tradingtool.telegram.registerTelegramResource
+import com.tradingtool.watchlist.registerWatchlistResource
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
@@ -39,6 +43,15 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
     val telegramSender = TelegramSender(
         botToken = appConfig.telegram.botToken,
         chatId = appConfig.telegram.chatId,
+    )
+    val watchlistService = WatchlistService(
+        dao = ExposedWatchlistDal(
+            config = WatchlistDatabaseConfig(
+                jdbcUrl = appConfig.supabase.dbUrl,
+                user = appConfig.supabase.dbUser,
+                password = appConfig.supabase.dbPassword,
+            ),
+        ),
     )
 
     monitor.subscribe(ApplicationStopped) {
@@ -85,6 +98,9 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
                       "telegramWebhookSecretConfigured":${appConfig.telegram.webhookSecret.isNotBlank()},
                       "supabaseUrlConfigured":${appConfig.supabase.url.isNotBlank()},
                       "supabaseKeyConfigured":${appConfig.supabase.key.isNotBlank()},
+                      "supabaseDbUrlConfigured":${appConfig.supabase.dbUrl.isNotBlank()},
+                      "supabaseDbUserConfigured":${appConfig.supabase.dbUser.isNotBlank()},
+                      "supabaseDbPasswordConfigured":${appConfig.supabase.dbPassword.isNotBlank()},
                       "renderExternalUrlConfigured":${appConfig.deployment.renderExternalUrl.isNotBlank()},
                       "githubPagesUrlConfigured":${appConfig.deployment.githubPagesUrl.isNotBlank()},
                       "corsOriginsCount":${appConfig.cors.allowedOrigins.size}
@@ -95,5 +111,6 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
         }
 
         registerTelegramResource(telegramSender = telegramSender)
+        registerWatchlistResource(watchlistService = watchlistService)
     }
 }

@@ -46,6 +46,9 @@ data class SupabaseConfig(
     val key: String,
     val serviceRoleKey: String,
     val publishableKey: String,
+    val dbUrl: String,
+    val dbUser: String,
+    val dbPassword: String,
 )
 
 data class DeploymentConfig(
@@ -164,6 +167,24 @@ fun loadAppConfig(resourceName: String = defaultConfigFileName()): AppConfig {
             fileValues = fileValues,
             yamlKey = "supabase.publishableKey",
             envVars = listOf("SUPABASE_PUBLISHABLE_KEY"),
+            defaultValue = "",
+        ),
+        dbUrl = getString(
+            fileValues = fileValues,
+            yamlKey = "supabase.dbUrl",
+            envVars = listOf("SUPABASE_DB_URL"),
+            defaultValue = "",
+        ),
+        dbUser = getString(
+            fileValues = fileValues,
+            yamlKey = "supabase.dbUser",
+            envVars = listOf("SUPABASE_DB_USER"),
+            defaultValue = "",
+        ),
+        dbPassword = getString(
+            fileValues = fileValues,
+            yamlKey = "supabase.dbPassword",
+            envVars = listOf("SUPABASE_DB_PASSWORD"),
             defaultValue = "",
         ),
     )
