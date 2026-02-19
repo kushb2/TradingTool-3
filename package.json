@@ -6,9 +6,9 @@
     "frontend:install": "npm --prefix frontend install",
     "frontend:dev": "npm --prefix frontend run dev -- --host 0.0.0.0 --port 5173",
     "frontend:build": "npm --prefix frontend run build",
-    "backend:dev": "mvn -f service/pom.xml exec:java",
-    "backend:test": "mvn -f service/pom.xml test",
-    "backend:package": "mvn -f service/pom.xml clean package -DskipTests",
+    "backend:dev": "mvn -f core/pom.xml clean install -DskipTests && mvn -f service/pom.xml exec:java",
+    "backend:test": "mvn -f pom.xml -pl service -am test",
+    "backend:package": "mvn -f pom.xml -pl service -am clean package -DskipTests",
     "backend:docker:build": "docker build -t trading-tool-backend .",
     "backend:docker:run": "docker run --rm --name trading-tool-backend-local -p 8080:8080 trading-tool-backend"
   }

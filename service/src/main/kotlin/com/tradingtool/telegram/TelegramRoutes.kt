@@ -1,7 +1,6 @@
 package com.tradingtool.telegram
 
 import com.tradingtool.core.model.telegram.TelegramSendFileRequest
-import com.tradingtool.core.model.telegram.TelegramSendResponse
 import com.tradingtool.core.model.telegram.TelegramSendResult
 import com.tradingtool.core.model.telegram.TelegramSendStatus
 import com.tradingtool.core.model.telegram.TelegramSendTextRequest
@@ -11,9 +10,9 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.http.content.PartData
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.application.call
-import io.ktor.server.request.receive
 import io.ktor.server.request.receiveMultipart
-import io.ktor.server.response.respond
+import io.ktor.server.request.receiveText
+import io.ktor.server.response.respondText
 import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -21,6 +20,12 @@ import io.ktor.server.routing.Route
 import io.ktor.server.routing.route
 import io.ktor.utils.io.readRemaining
 import kotlinx.io.readByteArray
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 
 private data class UploadedFile(
     val bytes: ByteArray,
@@ -28,6 +33,8 @@ private data class UploadedFile(
     val contentType: String,
     val caption: String?,
 )
+
+private val requestJson: Json = Json { ignoreUnknownKeys = true }
 
 class TelegramResource(
     private val telegramSender: TelegramSender,
@@ -53,29 +60,30 @@ class TelegramResource(
     }
 
     private suspend fun handleGetStatus(call: ApplicationCall) {
-        call.respond(
+        val payload = buildJsonObject {
+            put("status", "ok")
+            put("configured", telegramSender.isConfigured())
+        }
+        call.respondText(
             status = HttpStatusCode.OK,
-            message = mapOf(
-                "status" to "ok",
-                "configured" to telegramSender.isConfigured(),
-            ),
+            text = payload.toString(),
+            contentType = ContentType.Application.Json,
         )
     }
 
     private suspend fun handlePostSendText(call: ApplicationCall) {
-        val request: TelegramSendTextRequest = call.receive()
+        val request: TelegramSendTextRequest = parseSendTextRequest(call) ?: return
         val result: TelegramSendResult = telegramSender.sendText(request)
         respondTelegramResult(call, result)
     }
 
     private suspend fun handlePostSendImage(call: ApplicationCall) {
         val uploadedFile: UploadedFile = receiveUploadedFile(call) ?: run {
-            call.respond(
+            respondTelegramJson(
+                call = call,
                 status = HttpStatusCode.BadRequest,
-                message = TelegramSendResponse(
-                    ok = false,
-                    message = "Image file is required.",
-                ),
+                ok = false,
+                message = "Image file is required.",
             )
             return
         }
@@ -93,12 +101,11 @@ class TelegramResource(
 
     private suspend fun handlePostSendExcel(call: ApplicationCall) {
         val uploadedFile: UploadedFile = receiveUploadedFile(call) ?: run {
-            call.respond(
+            respondTelegramJson(
+                call = call,
                 status = HttpStatusCode.BadRequest,
-                message = TelegramSendResponse(
-                    ok = false,
-                    message = "Excel file is required.",
-                ),
+                ok = false,
+                message = "Excel file is required.",
             )
             return
         }
@@ -116,12 +123,11 @@ class TelegramResource(
 
     private suspend fun handleDeleteMessage(call: ApplicationCall) {
         val messageId: String = call.parameters["messageId"].orEmpty()
-        call.respond(
+        respondTelegramJson(
+            call = call,
             status = HttpStatusCode.NotImplemented,
-            message = TelegramSendResponse(
-                ok = false,
-                message = "Delete is not enabled in send-only mode. Message ID: $messageId",
-            ),
+            ok = false,
+            message = "Delete is not enabled in send-only mode. Message ID: $messageId",
         )
     }
 
@@ -179,7 +185,61 @@ class TelegramResource(
             TelegramSendStatus.NOT_CONFIGURED -> HttpStatusCode.ServiceUnavailable
             TelegramSendStatus.FAILED -> HttpStatusCode.BadGateway
         }
-        call.respond(status = httpStatusCode, message = result.response)
+        respondTelegramJson(
+            call = call,
+            status = httpStatusCode,
+            ok = result.response.ok,
+            message = result.response.message,
+            telegramDescription = result.response.telegramDescription,
+        )
+    }
+
+    private suspend fun parseSendTextRequest(call: ApplicationCall): TelegramSendTextRequest? {
+        val bodyText: String = call.receiveText()
+        val text: String = runCatching {
+            requestJson
+                .parseToJsonElement(bodyText)
+                .jsonObject["text"]
+                ?.jsonPrimitive
+                ?.content
+                ?.trim()
+                .orEmpty()
+        }.getOrDefault("")
+
+        if (text.isEmpty()) {
+            respondTelegramJson(
+                call = call,
+                status = HttpStatusCode.BadRequest,
+                ok = false,
+                message = "Request body must be valid JSON with a non-empty 'text' field.",
+            )
+            return null
+        }
+
+        return TelegramSendTextRequest(text = text)
+    }
+
+    private suspend fun respondTelegramJson(
+        call: ApplicationCall,
+        status: HttpStatusCode,
+        ok: Boolean,
+        message: String,
+        telegramDescription: String? = null,
+    ) {
+        val payload = buildJsonObject {
+            put("ok", ok)
+            put("message", message)
+            if (telegramDescription == null) {
+                put("telegramDescription", JsonNull)
+            } else {
+                put("telegramDescription", telegramDescription)
+            }
+        }
+        call.respondText(
+            status = status,
+            text = payload.toString(),
+            contentType = ContentType.Application.Json,
+        )
     }
 }
 

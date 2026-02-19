@@ -1,5 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
-import * as LightweightChartsReact from "lightweight-charts-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Button,
@@ -8,7 +7,6 @@ import {
   Divider,
   Input,
   Layout,
-  List,
   Row,
   Space,
   Table,
@@ -16,6 +14,7 @@ import {
   Typography,
   Upload,
 } from "antd";
+import { createChart, LineSeries } from "lightweight-charts";
 
 const { Header, Content, Footer } = Layout;
 const { Title, Paragraph, Text } = Typography;
@@ -43,24 +42,72 @@ const watchlistColumns = [
 ];
 
 function LightweightChartsReactPanel() {
-  const exportedMembers = Object.keys(LightweightChartsReact);
+  const containerRef = useRef(null);
 
-  if (exportedMembers.length === 0) {
-    return (
-      <Alert
-        type="warning"
-        showIcon
-        message="lightweight-charts-react is installed"
-        description="The package currently exposes no public React components. Ant Design UI setup is complete and ready for chart wiring once a chart component export is available."
-      />
-    );
-  }
+  useEffect(() => {
+    if (!containerRef.current) {
+      return undefined;
+    }
+
+    const chart = createChart(containerRef.current, {
+      layout: {
+        background: { color: "#ffffff" },
+        textColor: "#1f1f1f",
+      },
+      grid: {
+        vertLines: { color: "#f0f0f0" },
+        horzLines: { color: "#f0f0f0" },
+      },
+      width: containerRef.current.clientWidth,
+      height: 260,
+      rightPriceScale: {
+        borderColor: "#d9d9d9",
+      },
+      timeScale: {
+        borderColor: "#d9d9d9",
+      },
+    });
+
+    const lineSeries = chart.addSeries(LineSeries, {
+      color: "#1677ff",
+      lineWidth: 2,
+    });
+
+    lineSeries.setData([
+      { time: "2026-02-10", value: 98.2 },
+      { time: "2026-02-11", value: 101.6 },
+      { time: "2026-02-12", value: 100.1 },
+      { time: "2026-02-13", value: 103.4 },
+      { time: "2026-02-14", value: 102.2 },
+      { time: "2026-02-15", value: 106.1 },
+      { time: "2026-02-16", value: 104.8 },
+      { time: "2026-02-17", value: 108.3 },
+      { time: "2026-02-18", value: 107.2 },
+      { time: "2026-02-19", value: 110.6 },
+    ]);
+
+    chart.timeScale().fitContent();
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      const target = entries[0];
+      if (!target) {
+        return;
+      }
+      chart.applyOptions({
+        width: Math.floor(target.contentRect.width),
+      });
+    });
+
+    resizeObserver.observe(containerRef.current);
+
+    return () => {
+      resizeObserver.disconnect();
+      chart.remove();
+    };
+  }, []);
 
   return (
-    <Space direction="vertical" size="small">
-      <Text>Exported members detected from lightweight-charts-react:</Text>
-      <Text code>{exportedMembers.join(", ")}</Text>
-    </Space>
+    <div ref={containerRef} style={{ width: "100%", minHeight: 260 }} />
   );
 }
 
@@ -285,7 +332,7 @@ export default function App() {
         </Title>
       </Header>
       <Content style={{ padding: 24 }}>
-        <Space direction="vertical" size="large" style={{ width: "100%" }}>
+        <Space orientation="vertical" size="large" style={{ width: "100%" }}>
           <Card>
             <Title level={4}>React Setup</Title>
             <Paragraph>
@@ -299,44 +346,53 @@ export default function App() {
               <Alert
                 type="info"
                 showIcon
-                message="Checking Render backend connection..."
+                title="Checking Render backend connection..."
               />
             ) : backendHealth.error ? (
               <Alert
                 type="error"
                 showIcon
-                message="Backend check failed"
+                title="Backend check failed"
                 description={backendHealth.error}
               />
             ) : (
               <Alert
                 type="success"
                 showIcon
-                message={`Backend status: ${backendHealth.status}`}
+                title={`Backend status: ${backendHealth.status}`}
               />
             )}
           </Card>
 
           <Card title="Telegram Sender">
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+            <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
               <div style={{ maxHeight: 280, overflowY: "auto" }}>
-                <List
-                  locale={{ emptyText: "No messages yet." }}
-                  dataSource={chatHistory}
-                  renderItem={(item) => (
-                    <List.Item key={item.key}>
-                      <Space direction="vertical" size={2} style={{ width: "100%" }}>
-                        <Space>
-                          <Tag color={item.sender === "You" ? "blue" : "green"}>
-                            {item.sender}
-                          </Tag>
-                          <Text type="secondary">{item.time}</Text>
+                {chatHistory.length === 0 ? (
+                  <Text type="secondary">No messages yet.</Text>
+                ) : (
+                  <Space orientation="vertical" size={10} style={{ width: "100%" }}>
+                    {chatHistory.map((item) => (
+                      <div
+                        key={item.key}
+                        style={{
+                          border: "1px solid #f0f0f0",
+                          borderRadius: 8,
+                          padding: 10,
+                        }}
+                      >
+                        <Space orientation="vertical" size={2} style={{ width: "100%" }}>
+                          <Space>
+                            <Tag color={item.sender === "You" ? "blue" : "green"}>
+                              {item.sender}
+                            </Tag>
+                            <Text type="secondary">{item.time}</Text>
+                          </Space>
+                          <Text>{item.text}</Text>
                         </Space>
-                        <Text>{item.text}</Text>
-                      </Space>
-                    </List.Item>
-                  )}
-                />
+                      </div>
+                    ))}
+                  </Space>
+                )}
               </div>
 
               <Space.Compact style={{ width: "100%" }}>
@@ -358,7 +414,7 @@ export default function App() {
               <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
                   <Card size="small" title="Send Image">
-                    <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space orientation="vertical" style={{ width: "100%" }}>
                       <Upload
                         maxCount={1}
                         accept="image/*"
@@ -388,7 +444,7 @@ export default function App() {
                 </Col>
                 <Col xs={24} lg={12}>
                   <Card size="small" title="Send Excel">
-                    <Space direction="vertical" style={{ width: "100%" }}>
+                    <Space orientation="vertical" style={{ width: "100%" }}>
                       <Upload
                         maxCount={1}
                         accept=".xlsx,.xls"
@@ -448,4 +504,3 @@ export default function App() {
     </Layout>
   );
 }
-

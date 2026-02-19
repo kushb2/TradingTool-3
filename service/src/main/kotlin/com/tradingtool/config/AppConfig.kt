@@ -1,5 +1,13 @@
 package com.tradingtool.config
 
+import java.io.InputStream
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
+private const val PRODUCTION_CONFIG_FILE = "serverConfig.yml"
+private const val LOCAL_CONFIG_FILE = "localconfig.yaml"
+
 data class AppConfig(
     val server: ServerConfig,
     val service: ServiceConfig,
@@ -45,7 +53,7 @@ data class DeploymentConfig(
     val githubPagesUrl: String,
 )
 
-fun loadAppConfig(resourceName: String = "serverConfig.yml"): AppConfig {
+fun loadAppConfig(resourceName: String = defaultConfigFileName()): AppConfig {
     val fileValues: Map<String, String> = loadYamlSectionValues(resourceName)
 
     val server = ServerConfig(
@@ -238,8 +246,7 @@ private fun parseCsv(rawValue: String): List<String> {
 }
 
 private fun loadYamlSectionValues(resourceName: String): Map<String, String> {
-    val configStream = object {}.javaClass.classLoader.getResourceAsStream(resourceName)
-        ?: error("Missing resource file: $resourceName")
+    val configStream: InputStream = openConfigStream(resourceName)
 
     val values: MutableMap<String, String> = mutableMapOf()
     var section: String? = null
@@ -279,4 +286,63 @@ private fun loadYamlSectionValues(resourceName: String): Map<String, String> {
     }
 
     return values
+}
+
+private fun openConfigStream(resourceName: String): InputStream {
+    val explicitPath: String? = firstNonBlankEnvironmentValue(
+        listOf("SERVER_CONFIG_PATH", "SERVER_CONFIG_FILE"),
+    )
+    if (explicitPath != null) {
+        val path: Path = Paths.get(explicitPath)
+        if (Files.exists(path)) {
+            return Files.newInputStream(path)
+        }
+        error("Configured server config file does not exist: $explicitPath")
+    }
+
+    findExistingConfigPath(resourceName)?.let { path ->
+        return Files.newInputStream(path)
+    }
+
+    return object {}.javaClass.classLoader.getResourceAsStream(resourceName)
+        ?: error("Missing resource file: $resourceName")
+}
+
+private fun defaultConfigFileName(): String {
+    if (isProductionEnvironment()) {
+        return PRODUCTION_CONFIG_FILE
+    }
+
+    if (findExistingConfigPath(LOCAL_CONFIG_FILE) != null) {
+        return LOCAL_CONFIG_FILE
+    }
+
+    val localConfigOnClasspath =
+        object {}.javaClass.classLoader.getResource(LOCAL_CONFIG_FILE) != null
+    if (localConfigOnClasspath) {
+        return LOCAL_CONFIG_FILE
+    }
+
+    return PRODUCTION_CONFIG_FILE
+}
+
+private fun isProductionEnvironment(): Boolean {
+    val profile: String = firstNonBlankEnvironmentValue(
+        listOf("APP_ENV", "APP_PROFILE", "ENV"),
+    )?.lowercase().orEmpty()
+    if (profile == "prod" || profile == "production") {
+        return true
+    }
+
+    val renderFlag: String = System.getenv("RENDER")?.trim()?.lowercase().orEmpty()
+    return renderFlag == "true"
+}
+
+private fun findExistingConfigPath(resourceName: String): Path? {
+    val localCandidates: List<Path> = listOf(
+        Paths.get("service", "src", "main", "resources", resourceName),
+        Paths.get("src", "main", "resources", resourceName),
+        Paths.get(resourceName),
+    )
+    return localCandidates.firstOrNull { path -> Files.exists(path) }
 }

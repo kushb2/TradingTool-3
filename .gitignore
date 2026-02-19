@@ -31,3 +31,6 @@ target/
 .DS_Store
 node_modules/
 frontend/dist/
+frontend/package-lock.json
+service/src/main/resources/localconfig.yaml
+localconfig.yaml
