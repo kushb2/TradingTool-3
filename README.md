@@ -23,6 +23,31 @@ mvn clean test
 mvn -pl service -am exec:java -Dexec.mainClass=com.tradingtool.ApplicationKt
 ```
 
+## Frontend (React + Ant Design)
+
+Frontend lives in `frontend/` and uses:
+
+- `react`
+- `antd`
+- `lightweight-charts-react`
+
+Note: `lightweight-charts-react` has legacy React peer metadata; install is configured via `frontend/.npmrc` (`legacy-peer-deps=true`).
+
+Run frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Build frontend:
+
+```bash
+cd frontend
+npm run build
+```
+
 Server settings are in:
 
 - `service/src/main/resources/serverConfig.yml`

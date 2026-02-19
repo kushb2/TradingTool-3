@@ -29,3 +29,5 @@ target/
 .idea/
 .env
 .DS_Store
+node_modules/
+frontend/dist/

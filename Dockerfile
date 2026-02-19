@@ -2,14 +2,10 @@ FROM maven:3.9.9-eclipse-temurin-21 AS build
 WORKDIR /workspace
 
 COPY pom.xml ./
-COPY core/pom.xml core/pom.xml
-COPY service/pom.xml service/pom.xml
-COPY event-service/pom.xml event-service/pom.xml
-COPY cron-job/pom.xml cron-job/pom.xml
-COPY core/src core/src
-COPY service/src service/src
-COPY event-service/src event-service/src
-COPY cron-job/src cron-job/src
+COPY core core
+COPY service service
+COPY event-service event-service
+COPY cron-job cron-job
 
 RUN mvn -pl service -am clean package -DskipTests
 
