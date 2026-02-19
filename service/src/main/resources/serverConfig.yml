@@ -25,5 +25,5 @@ supabase:
   publishableKey: ""
 
 deployment:
-  renderExternalUrl: "https://tradingtool-3.onrender.com"
+  renderExternalUrl: "https://tradingtool-3-service.onrender.com"
   githubPagesUrl: "https://kushb2.github.io/TradingTool-3/"
