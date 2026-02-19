@@ -2,10 +2,13 @@ package com.tradingtool
 
 import com.tradingtool.config.AppConfig
 import com.tradingtool.config.loadAppConfig
+import com.tradingtool.core.telegram.TelegramSender
+import com.tradingtool.telegram.registerTelegramResource
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
+import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
@@ -33,10 +36,18 @@ fun main() {
 }
 
 fun Application.module(appConfig: AppConfig = loadAppConfig()) {
+    val telegramSender = TelegramSender(
+        botToken = appConfig.telegram.botToken,
+        chatId = appConfig.telegram.chatId,
+    )
+
+    monitor.subscribe(ApplicationStopped) {
+        telegramSender.close()
+    }
+
     install(ContentNegotiation) {
         json()
     }
-
     install(CORS) {
         allowMethod(HttpMethod.Options)
         allowMethod(HttpMethod.Get)
@@ -82,5 +93,7 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
                 contentType = ContentType.Application.Json,
             )
         }
+
+        registerTelegramResource(telegramSender = telegramSender)
     }
 }
