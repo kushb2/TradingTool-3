@@ -7,8 +7,8 @@ COPY service service
 COPY event-service event-service
 COPY cron-job cron-job
 
-RUN mvn -pl service -am clean package -DskipTests
-RUN mvn -pl service -am dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=service/target/lib
+RUN mvn -pl service -am clean install -DskipTests
+RUN mvn -pl service dependency:copy-dependencies -DincludeScope=runtime -DoutputDirectory=target/lib
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
