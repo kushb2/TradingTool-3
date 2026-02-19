@@ -9,9 +9,9 @@ cors:
   allowedOrigins: "https://kushb2.github.io,http://localhost:5173,http://127.0.0.1:5173"
 
 telegram:
-  botToken: "123456789:replace_with_botfather_token_secret"
-  chatId: "974882412"
-  webhookSecret: "DSRAdmin1!00"
+  botToken: ""
+  chatId: ""
+  webhookSecret: ""
   downloadDir: "data/telegram_downloads"
   pollTimeoutSeconds: 60
   requestTimeoutSeconds: 75
@@ -19,12 +19,11 @@ telegram:
   maxRetrySleepSeconds: 30
 
 supabase:
-  url: "https://agadprjhajxqabseiqhr.supabase.co"
-  key: "sb_secret_O_0QLKidslfRsYrAYg0nlQ_vCXRnxZz"
-  serviceRoleKey: "sb_secret_O_0QLKidslfRsYrAYg0nlQ_vCXRnxZz"
-  publishableKey: "sb_publishable_7uAiKZ3FTDfjF-9Z0ih5vw_omrLquXQ"
+  url: ""
+  key: ""
+  serviceRoleKey: ""
+  publishableKey: ""
 
 deployment:
-  renderExternalUrl: "https://tradingtool-2.onrender.com"
-  githubPagesUrl: "https://kushb2.github.io"
-
+  renderExternalUrl: "https://tradingtool-3.onrender.com"
+  githubPagesUrl: "https://kushb2.github.io/TradingTool-3/"

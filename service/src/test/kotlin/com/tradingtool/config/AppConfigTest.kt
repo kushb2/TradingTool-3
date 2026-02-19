@@ -13,6 +13,6 @@ class AppConfigTest {
         assertEquals(expected = 8080, actual = config.server.port)
         assertEquals(expected = "TradingTool-3", actual = config.service.name)
         assertTrue(actual = config.cors.allowedOrigins.isNotEmpty())
-        assertEquals(expected = "https://kushb2.github.io", actual = config.deployment.githubPagesUrl)
+        assertEquals(expected = "https://kushb2.github.io/TradingTool-3/", actual = config.deployment.githubPagesUrl)
     }
 }

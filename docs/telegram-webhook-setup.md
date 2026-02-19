@@ -1,6 +1,6 @@
-# Telegram Webhook Setup (Render + FastAPI)
+# Telegram Webhook Setup (Render + Ktor)
 
-Use this when deploying Telegram updates via FastAPI webhook instead of long polling.
+Use this when deploying Telegram updates via Ktor webhook endpoint.
 
 ## 0. Render Blueprint file
 
@@ -19,17 +19,18 @@ TELEGRAM_BOT_TOKEN=<bot_id>:<secret_from_botfather>
 TELEGRAM_CHAT_ID=974882412
 TELEGRAM_WEBHOOK_SECRET=<random_secret_string>
 TELEGRAM_DOWNLOAD_DIR=data/telegram_downloads
-RENDER_EXTERNAL_URL=https://tradingtool-2.onrender.com
+RENDER_EXTERNAL_URL=https://tradingtool-3.onrender.com
+GITHUB_PAGES_URL=https://kushb2.github.io/TradingTool-3/
 ```
 
 If using `render.yaml`, Render will prompt for secret values where `sync: false`.
 
-## 2. Start FastAPI app
+## 2. Start Ktor service
 
 Render Start Command:
 
 ```bash
-poetry run uvicorn src.presentation.api.telegram_webhook_app:app --host 0.0.0.0 --port $PORT
+mvn -pl service -am exec:java -Dexec.mainClass=com.tradingtool.ApplicationKt
 ```
 
 If using `render.yaml`, this is already configured.
@@ -39,19 +40,21 @@ If using `render.yaml`, this is already configured.
 Run once after deploy:
 
 ```bash
-poetry run python -m src.presentation.cli.telegram_webhook_cli set --public-base-url https://tradingtool-2.onrender.com --webhook-path /telegram/webhook
+curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
+  --data-urlencode "url=${RENDER_EXTERNAL_URL}/telegram/webhook" \
+  --data-urlencode "secret_token=${TELEGRAM_WEBHOOK_SECRET}"
 ```
 
 ## 4. Check webhook status
 
 ```bash
-poetry run python -m src.presentation.cli.telegram_webhook_cli info
+curl -sS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo"
 ```
 
 ## 5. Remove webhook (if needed)
 
 ```bash
-poetry run python -m src.presentation.cli.telegram_webhook_cli delete
+curl -sS -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/deleteWebhook"
 ```
 
 ## 6. Important operational rule

@@ -171,7 +171,7 @@ fun loadAppConfig(resourceName: String = "serverConfig.yml"): AppConfig {
             fileValues = fileValues,
             yamlKey = "deployment.githubPagesUrl",
             envVars = listOf("GITHUB_PAGES_URL"),
-            defaultValue = "https://kushb2.github.io",
+            defaultValue = "https://kushb2.github.io/TradingTool-3/",
         ),
     )
 

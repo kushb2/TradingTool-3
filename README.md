@@ -41,6 +41,11 @@ curl http://localhost:8080/health/config
 - `docs/kotlin-migration-plan.md`
 - `docs/kotlin-dependencies.md`
 - `docs/intellij-maven-kotlin-setup.md`
+- `docs/telegram-webhook-setup.md`
+
+Render deployment blueprint:
+
+- `render.yaml`
 
 ## Migrated keys
 
