@@ -77,7 +77,7 @@ class TelegramResource(
                     message = "Image file is required.",
                 ),
             )
-            return@post
+            return
         }
 
         val result: TelegramSendResult = telegramSender.sendImage(
@@ -100,7 +100,7 @@ class TelegramResource(
                     message = "Excel file is required.",
                 ),
             )
-            return@post
+            return
         }
 
         val result: TelegramSendResult = telegramSender.sendExcel(
