@@ -1,17 +1,15 @@
 services:
   - type: web
     name: tradingtool-3-service
-    runtime: java
+    runtime: docker
     region: oregon
     plan: free
     branch: main
     rootDir: .
     autoDeploy: true
     healthCheckPath: /health
-    buildCommand: |
-      mvn -pl service -am clean package -DskipTests
-    startCommand: |
-      mvn -pl service -am exec:java -Dexec.mainClass=com.tradingtool.ApplicationKt
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: JAVA_VERSION
         value: "21"
