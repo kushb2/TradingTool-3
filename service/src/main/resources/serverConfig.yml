@@ -19,13 +19,7 @@ telegram:
   maxRetrySleepSeconds: 30
 
 supabase:
-  url: ""
-  key: ""
-  serviceRoleKey: ""
-  publishableKey: ""
   dbUrl: ""
-  dbUser: ""
-  dbPassword: ""
 
 deployment:
   renderExternalUrl: "https://tradingtool-3-service.onrender.com"

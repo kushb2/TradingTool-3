@@ -42,13 +42,7 @@ data class TelegramConfig(
 )
 
 data class SupabaseConfig(
-    val url: String,
-    val key: String,
-    val serviceRoleKey: String,
-    val publishableKey: String,
     val dbUrl: String,
-    val dbUser: String,
-    val dbPassword: String,
 )
 
 data class DeploymentConfig(
@@ -145,46 +139,10 @@ fun loadAppConfig(resourceName: String = defaultConfigFileName()): AppConfig {
     )
 
     val supabase = SupabaseConfig(
-        url = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.url",
-            envVars = listOf("SUPABASE_URL"),
-            defaultValue = "",
-        ),
-        key = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.key",
-            envVars = listOf("SUPABASE_KEY"),
-            defaultValue = "",
-        ),
-        serviceRoleKey = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.serviceRoleKey",
-            envVars = listOf("SUPABASE_SERVICE_ROLE_KEY"),
-            defaultValue = "",
-        ),
-        publishableKey = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.publishableKey",
-            envVars = listOf("SUPABASE_PUBLISHABLE_KEY"),
-            defaultValue = "",
-        ),
         dbUrl = getString(
             fileValues = fileValues,
             yamlKey = "supabase.dbUrl",
             envVars = listOf("SUPABASE_DB_URL"),
-            defaultValue = "",
-        ),
-        dbUser = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.dbUser",
-            envVars = listOf("SUPABASE_DB_USER"),
-            defaultValue = "",
-        ),
-        dbPassword = getString(
-            fileValues = fileValues,
-            yamlKey = "supabase.dbPassword",
-            envVars = listOf("SUPABASE_DB_PASSWORD"),
             defaultValue = "",
         ),
     )

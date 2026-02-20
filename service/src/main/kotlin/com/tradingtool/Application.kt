@@ -76,11 +76,7 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
                       "status":"ok",
                       "telegramBotTokenConfigured":${appConfig.telegram.botToken.isNotBlank()},
                       "telegramWebhookSecretConfigured":${appConfig.telegram.webhookSecret.isNotBlank()},
-                      "supabaseUrlConfigured":${appConfig.supabase.url.isNotBlank()},
-                      "supabaseKeyConfigured":${appConfig.supabase.key.isNotBlank()},
                       "supabaseDbUrlConfigured":${appConfig.supabase.dbUrl.isNotBlank()},
-                      "supabaseDbUserConfigured":${appConfig.supabase.dbUser.isNotBlank()},
-                      "supabaseDbPasswordConfigured":${appConfig.supabase.dbPassword.isNotBlank()},
                       "renderExternalUrlConfigured":${appConfig.deployment.renderExternalUrl.isNotBlank()},
                       "githubPagesUrlConfigured":${appConfig.deployment.githubPagesUrl.isNotBlank()},
                       "corsOriginsCount":${appConfig.cors.allowedOrigins.size}

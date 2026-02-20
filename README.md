@@ -81,7 +81,7 @@ The full migrated key set is documented in:
 Current key groups:
 
 - Telegram: `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_WEBHOOK_SECRET`, `TELEGRAM_DOWNLOAD_DIR`, timeout/retry keys
-- Supabase: `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_PUBLISHABLE_KEY`
+- Supabase: `SUPABASE_DB_URL`
 - Deployment: `RENDER_EXTERNAL_URL`, `GITHUB_PAGES_URL`, `CORS_ALLOWED_ORIGINS`
 
 Set these as real environment variables in your shell/CI/Render runtime.
