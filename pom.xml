@@ -13,7 +13,7 @@
     <modules>
         <module>core</module>
         <module>resources</module>
-        <module>app</module>
+        <module>service</module>
         <module>event-service</module>
         <module>cron-job</module>
     </modules>

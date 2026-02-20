@@ -1,5 +1,8 @@
 package com.tradingtool.core.database
 
+import com.tradingtool.core.model.DatabaseConfig
+import com.tradingtool.core.model.JdbiHandlerError
+import com.tradingtool.core.model.JdbiNotConfiguredError
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jdbi.v3.core.Jdbi
@@ -7,20 +10,8 @@ import org.jdbi.v3.core.Handle
 import org.jdbi.v3.postgres.PostgresPlugin
 import org.jdbi.v3.sqlobject.SqlObjectPlugin
 
-/**
- * Database configuration for JDBI connection.
- */
-data class DatabaseConfig(
-    val jdbcUrl: String,
-    val user: String,
-    val password: String,
-)
 
-/**
- * JDBI Handler exceptions.
- */
-open class JdbiHandlerError(override val message: String) : Exception(message)
-class JdbiNotConfiguredError(message: String) : JdbiHandlerError(message)
+
 
 /**
  * JDBI 3 Handler that executes blocking database calls on Dispatchers.IO.
