@@ -18,7 +18,7 @@ export SUPABASE_DB_URL="jdbc:postgresql://db.<project-ref>.supabase.co:5432/post
 
 ```bash
 mvn -f pom.xml -pl service -am package -DskipTests
-java -jar service/target/service-0.1.0-SNAPSHOT.jar
+java -jar service/target/service-0.1.0-SNAPSHOT.jar server /Users/kushbhardwaj/Documents/github/TradingTool-3/service/src/main/resources/localconfig.yaml
 ```
 
 3. Verify backend:

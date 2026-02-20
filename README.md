@@ -20,7 +20,8 @@ Kotlin migration bootstrap for the TradingTool backend.
 
 ```bash
 mvn clean test
-mvn -pl service -am exec:java -Dexec.mainClass=com.tradingtool.ApplicationKt
+mvn -f pom.xml -pl service -am package -DskipTests
+java -jar service/target/service-0.1.0-SNAPSHOT.jar server /Users/kushbhardwaj/Documents/github/TradingTool-3/service/src/main/resources/localconfig.yaml
 ```
 
 ## Frontend (React + Ant Design)
@@ -51,6 +52,7 @@ npm run build
 Server settings are in:
 
 - `service/src/main/resources/serverConfig.yml`
+- `service/src/main/resources/localconfig.yaml`
 - Environment variables override YAML values when both are present.
 
 Health checks:

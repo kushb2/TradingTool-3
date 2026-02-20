@@ -59,7 +59,13 @@ if [[ -z "$BACKEND_JAR" ]]; then
   exit 1
 fi
 
-java -jar "$BACKEND_JAR" &
+LOCAL_CONFIG_FILE="$ROOT_DIR/service/src/main/resources/localconfig.yaml"
+if [[ ! -f "$LOCAL_CONFIG_FILE" ]]; then
+  echo "Local config file not found: $LOCAL_CONFIG_FILE"
+  exit 1
+fi
+
+java -jar "$BACKEND_JAR" server "$LOCAL_CONFIG_FILE" &
 BACKEND_PID=$!
 
 echo "Starting frontend on http://localhost:5173 ..."
