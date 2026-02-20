@@ -26,6 +26,7 @@ import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
 import java.net.URI
+import kotlinx.serialization.json.Json
 
 fun main() {
     val appConfig: AppConfig = loadAppConfig()
@@ -44,13 +45,14 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
     val telegramSender = injector.getInstance(TelegramSender::class.java)
     val telegramResource = injector.getInstance(TelegramResource::class.java)
     val watchlistResource = injector.getInstance(WatchlistResource::class.java)
+    val appJson = injector.getInstance(Json::class.java)
 
     monitor.subscribe(ApplicationStopped) {
         telegramSender.close()
     }
 
     install(ContentNegotiation) {
-        json()
+        json(appJson)
     }
     install(CORS) {
         allowMethod(HttpMethod.Options)

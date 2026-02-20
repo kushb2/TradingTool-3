@@ -37,11 +37,11 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.decodeFromJsonElement
 import kotlinx.serialization.json.put
 
-private val requestJson: Json = Json { ignoreUnknownKeys = true }
-
 class WatchlistResource(
     @Inject
     private val watchlistService: WatchlistService,
+    @Inject
+    private val json: Json,
 ) {
     fun register(route: Route) {
         route.route("/api/watchlist") {
@@ -553,7 +553,7 @@ class WatchlistResource(
     ): PayloadT? {
         val bodyText: String = call.receiveText()
         return runCatching {
-            requestJson.decodeFromString<PayloadT>(bodyText)
+            json.decodeFromString<PayloadT>(bodyText)
         }.getOrElse { error ->
             respondDetail(
                 call = call,
@@ -570,7 +570,7 @@ class WatchlistResource(
     ): JsonObject? {
         val bodyText: String = call.receiveText()
         val parsedElement = runCatching {
-            requestJson.parseToJsonElement(bodyText)
+            json.parseToJsonElement(bodyText)
         }.getOrElse { error ->
             respondDetail(
                 call = call,
@@ -597,7 +597,7 @@ class WatchlistResource(
         errorContext: String,
     ): PayloadT? {
         return runCatching {
-            requestJson.decodeFromJsonElement<PayloadT>(bodyObject)
+            json.decodeFromJsonElement<PayloadT>(bodyObject)
         }.getOrElse { error ->
             respondDetail(
                 call = call,
@@ -718,7 +718,7 @@ class WatchlistResource(
     ) {
         call.respondText(
             status = status,
-            text = requestJson.encodeToString(payload),
+            text = json.encodeToString(payload),
             contentType = ContentType.Application.Json,
         )
     }

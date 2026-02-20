@@ -35,11 +35,11 @@ private data class UploadedFile(
     val caption: String?,
 )
 
-private val requestJson: Json = Json { ignoreUnknownKeys = true }
-
 class TelegramResource(
     @Inject
     private val telegramSender: TelegramSender,
+    @Inject
+    private val json: Json,
 ) {
     fun register(route: Route) {
         route.route("/api/telegram") {
@@ -199,7 +199,7 @@ class TelegramResource(
     private suspend fun parseSendTextRequest(call: ApplicationCall): TelegramSendTextRequest? {
         val bodyText: String = call.receiveText()
         val text: String = runCatching {
-            requestJson
+            json
                 .parseToJsonElement(bodyText)
                 .jsonObject["text"]
                 ?.jsonPrimitive

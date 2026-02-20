@@ -7,6 +7,9 @@ import com.tradingtool.config.AppConfig
 import com.tradingtool.core.database.DatabaseConfig
 import com.tradingtool.core.database.JdbiHandler
 import com.tradingtool.core.database.WatchlistJdbiHandler
+import com.tradingtool.core.http.HttpRequestExecutor
+import com.tradingtool.core.http.JdkHttpRequestExecutor
+import com.tradingtool.core.telegram.TelegramApiClient
 import com.tradingtool.core.telegram.TelegramSender
 import com.tradingtool.core.watchlist.dao.WatchlistDal
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
@@ -17,12 +20,16 @@ import com.tradingtool.core.watchlist.service.WatchlistService
 import com.tradingtool.core.watchlist.service.WatchlistWriteService
 import com.tradingtool.telegram.TelegramResource
 import com.tradingtool.watchlist.WatchlistResource
+import java.net.http.HttpClient
+import java.time.Duration
+import kotlinx.serialization.json.Json
 
 class ServiceModule(
     private val appConfig: AppConfig,
 ) : AbstractModule() {
     override fun configure() {
         bind(AppConfig::class.java).toInstance(appConfig)
+        bind(HttpRequestExecutor::class.java).to(JdkHttpRequestExecutor::class.java).`in`(Singleton::class.java)
         bind(TelegramResource::class.java).`in`(Singleton::class.java)
         bind(WatchlistResource::class.java).`in`(Singleton::class.java)
         bind(WatchlistReadService::class.java).`in`(Singleton::class.java)
@@ -31,10 +38,40 @@ class ServiceModule(
 
     @Provides
     @Singleton
-    fun provideTelegramSender(config: AppConfig): TelegramSender {
-        return TelegramSender(
+    fun provideHttpClient(): HttpClient {
+        return HttpClient.newBuilder()
+            .connectTimeout(Duration.ofSeconds(30))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    fun provideJson(): Json {
+        return Json { ignoreUnknownKeys = true }
+    }
+
+    @Provides
+    @Singleton
+    fun provideTelegramApiClient(
+        config: AppConfig,
+        httpRequestExecutor: HttpRequestExecutor,
+        json: Json,
+    ): TelegramApiClient {
+        return TelegramApiClient(
             botToken = config.telegram.botToken,
             chatId = config.telegram.chatId,
+            httpRequestExecutor = httpRequestExecutor,
+            json = json,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideTelegramSender(
+        telegramApiClient: TelegramApiClient,
+    ): TelegramSender {
+        return TelegramSender(
+            telegramApiClient = telegramApiClient,
         )
     }
 
