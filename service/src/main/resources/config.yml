@@ -1,0 +1,33 @@
+server:
+  type: simple
+  applicationContextPath: /
+  adminContextPath: /admin
+  connector:
+    type: http
+    port: 8080
+    bindHost: 0.0.0.0
+
+logging:
+  level: INFO
+  appenders:
+    - type: console
+
+service:
+  name: TradingTool-3
+
+telegram:
+  botToken: ${TELEGRAM_BOT_TOKEN:-}
+  chatId: ${TELEGRAM_CHAT_ID:-}
+  webhookSecret: ${TELEGRAM_WEBHOOK_SECRET:-}
+  downloadDir: data/telegram_downloads
+  pollTimeoutSeconds: 60
+  requestTimeoutSeconds: 75
+  errorRetrySleepSeconds: 1
+  maxRetrySleepSeconds: 30
+
+supabase:
+  dbUrl: ${SUPABASE_DB_URL:-}
+
+deployment:
+  renderExternalUrl: ${RENDER_EXTERNAL_URL:-}
+  githubPagesUrl: ${GITHUB_PAGES_URL:-https://kushb2.github.io/TradingTool-3/}

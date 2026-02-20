@@ -1,89 +1,52 @@
 package com.tradingtool
 
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.inject.Guice
 import com.tradingtool.config.AppConfig
-import com.tradingtool.config.loadAppConfig
+import com.tradingtool.config.DropwizardConfig
 import com.tradingtool.di.ServiceModule
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.serialization.kotlinx.json.json
-import io.ktor.server.application.Application
-import io.ktor.server.application.call
-import io.ktor.server.application.install
-import io.ktor.server.engine.embeddedServer
-import io.ktor.http.ContentType
-import io.ktor.server.netty.Netty
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
-import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.response.respond
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
-import java.net.URI
-import kotlinx.serialization.json.Json
+import com.tradingtool.resources.health.HealthResource
+import com.tradingtool.resources.telegram.TelegramResource
+import com.tradingtool.resources.watchlist.WatchlistResource
+import io.dropwizard.core.Application
+import io.dropwizard.core.setup.Bootstrap
+import io.dropwizard.core.setup.Environment
+import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature
 
-fun main() {
-    val appConfig: AppConfig = loadAppConfig()
-    embeddedServer(
-        factory = Netty,
-        port = appConfig.server.port,
-        host = appConfig.server.host,
-        module = {
-            module(appConfig)
-        },
-    ).start(wait = true)
+fun main(args: Array<String>) {
+    DropwizardApplication().run(*args)
 }
 
-fun Application.module(appConfig: AppConfig = loadAppConfig()) {
-    val injector = Guice.createInjector(ServiceModule(appConfig))
-    val appJson = injector.getInstance(Json::class.java)
+class DropwizardApplication : Application<DropwizardConfig>() {
 
-    install(ContentNegotiation) {
-        json(appJson)
-    }
-    install(CORS) {
-        allowMethod(HttpMethod.Options)
-        allowMethod(HttpMethod.Get)
-        allowMethod(HttpMethod.Post)
-        allowMethod(HttpMethod.Put)
-        allowMethod(HttpMethod.Delete)
-        allowHeader(HttpHeaders.Accept)
-        allowHeader(HttpHeaders.Authorization)
-        allowHeader(HttpHeaders.ContentType)
-        allowCredentials = true
-        allowNonSimpleContentTypes = true
+    override fun getName(): String = "TradingTool-3"
 
-        appConfig.cors.allowedOrigins.forEach { origin ->
-            val uri = runCatching { URI(origin) }.getOrNull() ?: return@forEach
-            val scheme = uri.scheme ?: return@forEach
-            val host = uri.host ?: return@forEach
-            val hostWithPort = if (uri.port == -1) host else "$host:${uri.port}"
-            allowHost(host = hostWithPort, schemes = listOf(scheme))
-        }
+    override fun initialize(bootstrap: Bootstrap<DropwizardConfig>) {
+        // No additional initialization needed
     }
 
-    routing {
-        get("/") {
-            call.respond(mapOf("service" to appConfig.service.name, "status" to "ok"))
-        }
-        get("/health") {
-            call.respond(mapOf("status" to "ok"))
-        }
-        get("/health/config") {
-            call.respondText(
-                text = """
-                    {
-                      "status":"ok",
-                      "telegramBotTokenConfigured":${appConfig.telegram.botToken.isNotBlank()},
-                      "telegramWebhookSecretConfigured":${appConfig.telegram.webhookSecret.isNotBlank()},
-                      "supabaseDbUrlConfigured":${appConfig.supabase.dbUrl.isNotBlank()},
-                      "renderExternalUrlConfigured":${appConfig.deployment.renderExternalUrl.isNotBlank()},
-                      "githubPagesUrlConfigured":${appConfig.deployment.githubPagesUrl.isNotBlank()},
-                      "corsOriginsCount":${appConfig.cors.allowedOrigins.size}
-                    }
-                """.trimIndent(),
-                contentType = ContentType.Application.Json,
-            )
-        }
+    override fun run(config: DropwizardConfig, environment: Environment) {
+        // Convert Dropwizard config to AppConfig
+        val appConfig = config.toAppConfig()
+
+        // Create Guice injector
+        val injector = Guice.createInjector(ServiceModule(appConfig))
+
+        // Register Jackson module for Kotlin
+        val objectMapper: ObjectMapper = environment.objectMapper
+        objectMapper.registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
+
+        // Get resource instances from Guice
+        val healthResource = injector.getInstance(HealthResource::class.java)
+        val telegramResource = injector.getInstance(TelegramResource::class.java)
+        val watchlistResource = injector.getInstance(WatchlistResource::class.java)
+
+        // Register resources with Jersey
+        environment.jersey().register(healthResource)
+        environment.jersey().register(telegramResource)
+        environment.jersey().register(watchlistResource)
+
+        // Enable RolesAllowed feature for security annotations
+        environment.jersey().register(RolesAllowedDynamicFeature::class.java)
     }
 }
