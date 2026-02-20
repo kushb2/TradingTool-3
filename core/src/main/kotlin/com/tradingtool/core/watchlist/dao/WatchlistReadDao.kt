@@ -1,13 +1,13 @@
 package com.tradingtool.core.watchlist.dao
 
-import com.tradingtool.core.model.watchlist.*
-import com.tradingtool.core.constants.DatabaseConstants.StockColumns
 import com.tradingtool.core.constants.DatabaseConstants.Tables
-import com.tradingtool.core.constants.DatabaseConstants.TagColumns
+import com.tradingtool.core.constants.DatabaseConstants.StockColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistColumns
+import com.tradingtool.core.constants.DatabaseConstants.TagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistStockColumns
 import com.tradingtool.core.constants.DatabaseConstants.StockTagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistTagColumns
+import com.tradingtool.core.model.watchlist.*
 import org.jdbi.v3.core.mapper.RowMapper
 import org.jdbi.v3.core.statement.StatementContext
 import org.jdbi.v3.sqlobject.config.RegisterRowMapper
@@ -15,7 +15,6 @@ import org.jdbi.v3.sqlobject.customizer.Bind
 import org.jdbi.v3.sqlobject.statement.SqlQuery
 import java.sql.ResultSet
 import java.time.OffsetDateTime
-
 /**
  * Read-only DAO for all watchlist-related SELECT queries.
  * Handles stocks, watchlists, tags, and their relationships.
@@ -42,7 +41,8 @@ interface WatchlistReadDao {
     @SqlQuery("SELECT ${StockColumns.ALL} FROM public.${Tables.STOCKS} ORDER BY ${StockColumns.CREATED_AT} DESC LIMIT :limit")
     fun listStocks(@Bind("limit") limit: Int): List<Stock>
 
-    @SqlQuery("""
+    @SqlQuery(
+        """
         SELECT s.${StockColumns.ID}, s.${StockColumns.SYMBOL}, s.${StockColumns.INSTRUMENT_TOKEN},
                s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
         FROM public.${Tables.STOCKS} s
@@ -50,7 +50,8 @@ interface WatchlistReadDao {
         JOIN public.${Tables.TAGS} t ON st.${StockTagColumns.TAG_ID} = t.${TagColumns.ID}
         WHERE t.${TagColumns.NAME} = :tagName
         ORDER BY s.${StockColumns.SYMBOL}
-    """)
+    """
+    )
     fun getStocksByTagName(@Bind("tagName") tagName: String): List<Stock>
 
     // ==================== Watchlist Queries ====================
@@ -80,13 +81,15 @@ interface WatchlistReadDao {
     @SqlQuery("SELECT ${StockTagColumns.ALL} FROM public.${Tables.STOCK_TAGS} WHERE ${StockTagColumns.STOCK_ID} = :stockId AND ${StockTagColumns.TAG_ID} = :tagId LIMIT 1")
     fun getStockTag(@Bind("stockId") stockId: Long, @Bind("tagId") tagId: Long): StockTag?
 
-    @SqlQuery("""
+    @SqlQuery(
+        """
         SELECT t.${TagColumns.ID}, t.${TagColumns.NAME}, t.${TagColumns.CREATED_AT}, t.${TagColumns.UPDATED_AT}
         FROM public.${Tables.TAGS} t
         JOIN public.${Tables.STOCK_TAGS} st ON t.${TagColumns.ID} = st.${StockTagColumns.TAG_ID}
         WHERE st.${StockTagColumns.STOCK_ID} = :stockId
         ORDER BY t.${TagColumns.NAME}
-    """)
+    """
+    )
     fun getTagsForStock(@Bind("stockId") stockId: Long): List<Tag>
 
     @SqlQuery("SELECT ${StockTagColumns.ALL} FROM public.${Tables.STOCK_TAGS} WHERE ${StockTagColumns.STOCK_ID} = :stockId")
@@ -97,13 +100,15 @@ interface WatchlistReadDao {
     @SqlQuery("SELECT ${WatchlistTagColumns.ALL} FROM public.${Tables.WATCHLIST_TAGS} WHERE ${WatchlistTagColumns.WATCHLIST_ID} = :watchlistId AND ${WatchlistTagColumns.TAG_ID} = :tagId LIMIT 1")
     fun getWatchlistTag(@Bind("watchlistId") watchlistId: Long, @Bind("tagId") tagId: Long): WatchlistTag?
 
-    @SqlQuery("""
+    @SqlQuery(
+        """
         SELECT t.${TagColumns.ID}, t.${TagColumns.NAME}, t.${TagColumns.CREATED_AT}, t.${TagColumns.UPDATED_AT}
         FROM public.${Tables.TAGS} t
         JOIN public.${Tables.WATCHLIST_TAGS} wt ON t.${TagColumns.ID} = wt.${WatchlistTagColumns.TAG_ID}
         WHERE wt.${WatchlistTagColumns.WATCHLIST_ID} = :watchlistId
         ORDER BY t.${TagColumns.NAME}
-    """)
+    """
+    )
     fun getTagsForWatchlist(@Bind("watchlistId") watchlistId: Long): List<Tag>
 
     @SqlQuery("SELECT ${WatchlistTagColumns.ALL} FROM public.${Tables.WATCHLIST_TAGS} WHERE ${WatchlistTagColumns.WATCHLIST_ID} = :watchlistId")
@@ -114,14 +119,16 @@ interface WatchlistReadDao {
     @SqlQuery("SELECT ${WatchlistStockColumns.ALL} FROM public.${Tables.WATCHLIST_STOCKS} WHERE ${WatchlistStockColumns.WATCHLIST_ID} = :watchlistId AND ${WatchlistStockColumns.STOCK_ID} = :stockId LIMIT 1")
     fun getWatchlistStock(@Bind("watchlistId") watchlistId: Long, @Bind("stockId") stockId: Long): WatchlistStock?
 
-    @SqlQuery("""
+    @SqlQuery(
+        """
         SELECT s.${StockColumns.ID}, s.${StockColumns.SYMBOL}, s.${StockColumns.INSTRUMENT_TOKEN},
                s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
         FROM public.${Tables.STOCKS} s
         JOIN public.${Tables.WATCHLIST_STOCKS} ws ON s.${StockColumns.ID} = ws.${WatchlistStockColumns.STOCK_ID}
         WHERE ws.${WatchlistStockColumns.WATCHLIST_ID} = :watchlistId
         ORDER BY ws.${WatchlistStockColumns.CREATED_AT} DESC
-    """)
+    """
+    )
     fun getStocksInWatchlist(@Bind("watchlistId") watchlistId: Long): List<Stock>
 
     @SqlQuery("SELECT ${WatchlistStockColumns.ALL} FROM public.${Tables.WATCHLIST_STOCKS} WHERE ${WatchlistStockColumns.WATCHLIST_ID} = :watchlistId ORDER BY ${WatchlistStockColumns.CREATED_AT} DESC")

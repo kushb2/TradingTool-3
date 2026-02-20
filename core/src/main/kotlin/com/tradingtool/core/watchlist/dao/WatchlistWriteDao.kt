@@ -1,13 +1,13 @@
 package com.tradingtool.core.watchlist.dao
 
-import com.tradingtool.core.model.watchlist.*
-import com.tradingtool.core.constants.DatabaseConstants.StockColumns
 import com.tradingtool.core.constants.DatabaseConstants.Tables
-import com.tradingtool.core.constants.DatabaseConstants.TagColumns
+import com.tradingtool.core.constants.DatabaseConstants.StockColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistColumns
+import com.tradingtool.core.constants.DatabaseConstants.TagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistStockColumns
 import com.tradingtool.core.constants.DatabaseConstants.StockTagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistTagColumns
+import com.tradingtool.core.model.watchlist.*
 import org.jdbi.v3.sqlobject.config.RegisterRowMapper
 import org.jdbi.v3.sqlobject.customizer.Bind
 import org.jdbi.v3.sqlobject.statement.SqlQuery
