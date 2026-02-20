@@ -21,6 +21,8 @@ import com.tradingtool.core.model.watchlist.WatchlistTag
 import com.tradingtool.core.model.watchlist.WatchlistUpdateField
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
 import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 
 /**
  * Write service for watchlist domain operations.
@@ -28,7 +30,8 @@ import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
  * Every public method executes inside a DB transaction and uses
  * [WatchlistJdbiHandler] for safe IO dispatcher handling.
  */
-class WatchlistWriteService(
+@Singleton
+class WatchlistWriteService @Inject constructor(
     private val db: WatchlistJdbiHandler,
 ) {
     suspend fun createStock(input: CreateStockInput): Stock = runInTransaction { _, writeDao ->

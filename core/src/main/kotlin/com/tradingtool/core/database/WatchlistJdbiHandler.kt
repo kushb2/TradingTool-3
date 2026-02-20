@@ -30,14 +30,3 @@ import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
  *   }
  */
 typealias WatchlistJdbiHandler = JdbiHandler<WatchlistReadDao, WatchlistWriteDao>
-
-/**
- * Factory function to create a WatchlistJdbiHandler.
- */
-fun createWatchlistJdbiHandler(config: DatabaseConfig): WatchlistJdbiHandler {
-    return JdbiHandler(
-        config = config,
-        readDaoClass = WatchlistReadDao::class.java,
-        writeDaoClass = WatchlistWriteDao::class.java
-    )
-}

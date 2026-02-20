@@ -10,6 +10,8 @@ import com.tradingtool.core.model.watchlist.Watchlist
 import com.tradingtool.core.model.watchlist.WatchlistStock
 import com.tradingtool.core.model.watchlist.WatchlistTag
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
+import jakarta.inject.Inject
+import jakarta.inject.Singleton
 
 /**
  * Read-only service for watchlist domain operations.
@@ -17,7 +19,8 @@ import com.tradingtool.core.watchlist.dao.WatchlistReadDao
  * All DAO calls go through [WatchlistJdbiHandler], which already routes blocking
  * database work to Dispatchers.IO.
  */
-class WatchlistReadService(
+@Singleton
+class WatchlistReadService @Inject constructor(
     private val db: WatchlistJdbiHandler,
 ) {
     suspend fun getStockById(stockId: Long): Stock? = runRead { dao ->
