@@ -3,6 +3,7 @@ package com.tradingtool.resources.watchlist
 import com.tradingtool.core.model.JdbiHandlerError
 import com.tradingtool.core.model.JdbiNotConfiguredError
 import com.tradingtool.core.model.watchlist.CreateStockInput
+import com.tradingtool.core.model.watchlist.CreateTagInput
 import com.tradingtool.core.model.watchlist.CreateWatchlistInput
 import com.tradingtool.core.model.watchlist.CreateWatchlistStockInput
 import com.tradingtool.core.model.watchlist.StockUpdateField
@@ -55,6 +56,10 @@ class WatchlistResource @Inject constructor(
     fun createStock(body: CreateStockInput?): CompletableFuture<Response> = ioScope.async {
         val payload: CreateStockInput = body
             ?: return@async badRequest("Invalid request body for create stock")
+        val priority: Int? = payload.priority
+        if (priority != null && priority <= 0) {
+            return@async badRequest("Field 'priority' must be a positive integer")
+        }
 
         runResourceAction {
             created(writeService.createStock(payload))
@@ -119,6 +124,10 @@ class WatchlistResource @Inject constructor(
     ): CompletableFuture<Response> = ioScope.async {
         val id: Long = parseLongPathParam(stockId)
             ?: return@async badRequest("Path parameter 'stockId' must be a valid integer")
+        val priority: Int? = body?.priority
+        if (priority != null && priority <= 0) {
+            return@async badRequest("Field 'priority' must be a positive integer")
+        }
 
         val input: UpdateStockInput = toUpdateStockInput(body)
             ?: return@async badRequest("At least one updatable stock field is required")
@@ -147,6 +156,36 @@ class WatchlistResource @Inject constructor(
             } else {
                 notFound("Stock '$id' not found")
             }
+        }
+    }.asCompletableFuture()
+
+    @POST
+    @Path("tags")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    fun createTag(body: CreateTagInput?): CompletableFuture<Response> = ioScope.async {
+        val payload: CreateTagInput = body
+            ?: return@async badRequest("Invalid request body for create tag")
+
+        val tagName: String = payload.name.trim()
+        if (tagName.isEmpty()) {
+            return@async badRequest("Tag name is required")
+        }
+
+        runResourceAction {
+            created(writeService.getOrCreateTag(tagName))
+        }
+    }.asCompletableFuture()
+
+    @GET
+    @Path("tags")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listTags(@QueryParam("limit") limitParam: String?): CompletableFuture<Response> = ioScope.async {
+        val limit: Int = parseLimit(limitParam)
+            ?: return@async badRequest("Query parameter 'limit' must be a positive integer")
+
+        runResourceAction {
+            ok(readService.listTags(limit))
         }
     }.asCompletableFuture()
 
@@ -252,6 +291,126 @@ class WatchlistResource @Inject constructor(
         }
     }.asCompletableFuture()
 
+    @GET
+    @Path("stocks/{stockId}/tags")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listTagsForStock(@PathParam("stockId") stockId: String): CompletableFuture<Response> = ioScope.async {
+        val stockIdValue: Long = parseLongPathParam(stockId)
+            ?: return@async badRequest("Path parameter 'stockId' must be a valid integer")
+
+        runResourceAction {
+            ok(readService.getTagsForStock(stockIdValue))
+        }
+    }.asCompletableFuture()
+
+    @POST
+    @Path("stocks/{stockId}/tags")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    fun addTagToStock(
+        @PathParam("stockId") stockId: String,
+        body: TagAssignmentRequest?,
+    ): CompletableFuture<Response> = ioScope.async {
+        val stockIdValue: Long = parseLongPathParam(stockId)
+            ?: return@async badRequest("Path parameter 'stockId' must be a valid integer")
+
+        val tagName: String = parseTagName(body?.tagName)
+            ?: return@async badRequest("Field 'tagName' is required")
+
+        runResourceAction {
+            val stockExists = readService.getStockById(stockIdValue) != null
+            if (!stockExists) {
+                return@runResourceAction notFound("Stock '$stockIdValue' not found")
+            }
+
+            val tag = writeService.getOrCreateTag(tagName)
+            writeService.getOrCreateStockTag(stockId = stockIdValue, tagId = tag.id)
+            created(tag)
+        }
+    }.asCompletableFuture()
+
+    @DELETE
+    @Path("stocks/{stockId}/tags/{tagId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun removeTagFromStock(
+        @PathParam("stockId") stockId: String,
+        @PathParam("tagId") tagId: String,
+    ): CompletableFuture<Response> = ioScope.async {
+        val stockIdValue: Long = parseLongPathParam(stockId)
+            ?: return@async badRequest("Path parameter 'stockId' must be a valid integer")
+        val tagIdValue: Long = parseLongPathParam(tagId)
+            ?: return@async badRequest("Path parameter 'tagId' must be a valid integer")
+
+        runResourceAction {
+            val affectedRows = writeService.deleteStockTag(stockIdValue, tagIdValue)
+            if (affectedRows > 0) {
+                ok(DeleteResponse(deleted = true))
+            } else {
+                notFound("Tag mapping '$stockIdValue:$tagIdValue' not found")
+            }
+        }
+    }.asCompletableFuture()
+
+    @GET
+    @Path("lists/{watchlistId}/tags")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listTagsForWatchlist(@PathParam("watchlistId") watchlistId: String): CompletableFuture<Response> = ioScope.async {
+        val watchlistIdValue: Long = parseLongPathParam(watchlistId)
+            ?: return@async badRequest("Path parameter 'watchlistId' must be a valid integer")
+
+        runResourceAction {
+            ok(readService.getTagsForWatchlist(watchlistIdValue))
+        }
+    }.asCompletableFuture()
+
+    @POST
+    @Path("lists/{watchlistId}/tags")
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Produces(MediaType.APPLICATION_JSON)
+    fun addTagToWatchlist(
+        @PathParam("watchlistId") watchlistId: String,
+        body: TagAssignmentRequest?,
+    ): CompletableFuture<Response> = ioScope.async {
+        val watchlistIdValue: Long = parseLongPathParam(watchlistId)
+            ?: return@async badRequest("Path parameter 'watchlistId' must be a valid integer")
+
+        val tagName: String = parseTagName(body?.tagName)
+            ?: return@async badRequest("Field 'tagName' is required")
+
+        runResourceAction {
+            val watchlistExists = readService.getWatchlistById(watchlistIdValue) != null
+            if (!watchlistExists) {
+                return@runResourceAction notFound("Watchlist '$watchlistIdValue' not found")
+            }
+
+            val tag = writeService.getOrCreateTag(tagName)
+            writeService.getOrCreateWatchlistTag(watchlistId = watchlistIdValue, tagId = tag.id)
+            created(tag)
+        }
+    }.asCompletableFuture()
+
+    @DELETE
+    @Path("lists/{watchlistId}/tags/{tagId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun removeTagFromWatchlist(
+        @PathParam("watchlistId") watchlistId: String,
+        @PathParam("tagId") tagId: String,
+    ): CompletableFuture<Response> = ioScope.async {
+        val watchlistIdValue: Long = parseLongPathParam(watchlistId)
+            ?: return@async badRequest("Path parameter 'watchlistId' must be a valid integer")
+        val tagIdValue: Long = parseLongPathParam(tagId)
+            ?: return@async badRequest("Path parameter 'tagId' must be a valid integer")
+
+        runResourceAction {
+            val affectedRows = writeService.deleteWatchlistTag(watchlistIdValue, tagIdValue)
+            if (affectedRows > 0) {
+                ok(DeleteResponse(deleted = true))
+            } else {
+                notFound("Tag mapping '$watchlistIdValue:$tagIdValue' not found")
+            }
+        }
+    }.asCompletableFuture()
+
     @POST
     @Path("items")
     @Consumes(MediaType.APPLICATION_JSON)
@@ -350,9 +509,9 @@ class WatchlistResource @Inject constructor(
         } catch (error: IllegalArgumentException) {
             badRequest(error.message ?: "Invalid request")
         } catch (error: JdbiNotConfiguredError) {
-            serviceUnavailable(error.message ?: "Database is not configured")
+            serviceUnavailable(error.message)
         } catch (error: JdbiHandlerError) {
-            internalError(error.message ?: "Database error")
+            internalError(error.message)
         } catch (error: Exception) {
             internalError(error.message ?: "Unexpected watchlist error")
         }
@@ -370,6 +529,12 @@ class WatchlistResource @Inject constructor(
         if (payload.exchange != null) {
             fieldsToUpdate.add(StockUpdateField.EXCHANGE)
         }
+        if (payload.description != null) {
+            fieldsToUpdate.add(StockUpdateField.DESCRIPTION)
+        }
+        if (payload.priority != null) {
+            fieldsToUpdate.add(StockUpdateField.PRIORITY)
+        }
 
         if (fieldsToUpdate.isEmpty()) {
             return null
@@ -379,7 +544,17 @@ class WatchlistResource @Inject constructor(
             fieldsToUpdate = fieldsToUpdate,
             companyName = payload.companyName,
             exchange = payload.exchange,
+            description = payload.description,
+            priority = payload.priority,
         )
+    }
+
+    private fun parseTagName(tagName: String?): String? {
+        val normalizedName = tagName?.trim().orEmpty()
+        if (normalizedName.isEmpty()) {
+            return null
+        }
+        return normalizedName
     }
 
     private fun toUpdateWatchlistInput(payload: UpdateWatchlistPayload?): UpdateWatchlistInput? {
@@ -458,6 +633,10 @@ class WatchlistResource @Inject constructor(
 
     private data class ErrorResponse(
         val detail: String,
+    )
+
+    data class TagAssignmentRequest(
+        val tagName: String?,
     )
 
     private companion object {

@@ -12,6 +12,8 @@ export interface Stock {
   instrumentToken: number;
   companyName: string;
   exchange: string;
+  description: string | null;
+  priority: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,4 +23,11 @@ export interface WatchlistStock {
   watchlistId: number;
   stockId: number;
   createdAt: string;
+}
+
+export interface Tag {
+  id: number;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
 }

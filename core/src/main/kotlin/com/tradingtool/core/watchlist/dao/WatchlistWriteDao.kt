@@ -29,8 +29,8 @@ interface WatchlistWriteDao {
 
     @SqlQuery(
         """
-        INSERT INTO public.${Tables.STOCKS} (${StockColumns.SYMBOL}, ${StockColumns.INSTRUMENT_TOKEN}, ${StockColumns.COMPANY_NAME}, ${StockColumns.EXCHANGE})
-        VALUES (:symbol, :instrumentToken, :companyName, :exchange)
+        INSERT INTO public.${Tables.STOCKS} (${StockColumns.SYMBOL}, ${StockColumns.INSTRUMENT_TOKEN}, ${StockColumns.COMPANY_NAME}, ${StockColumns.EXCHANGE}, ${StockColumns.DESCRIPTION}, ${StockColumns.PRIORITY})
+        VALUES (:symbol, :instrumentToken, :companyName, :exchange, :description, :priority)
         RETURNING ${StockColumns.ALL}
         """
     )
@@ -38,7 +38,9 @@ interface WatchlistWriteDao {
         @Bind("symbol") symbol: String,
         @Bind("instrumentToken") instrumentToken: Long,
         @Bind("companyName") companyName: String,
-        @Bind("exchange") exchange: String
+        @Bind("exchange") exchange: String,
+        @Bind("description") description: String?,
+        @Bind("priority") priority: Int?
     ): Stock
 
     @SqlQuery(
@@ -47,6 +49,8 @@ interface WatchlistWriteDao {
         SET
             ${StockColumns.COMPANY_NAME} = CASE WHEN :setCompanyName THEN CAST(:companyName AS text) ELSE ${StockColumns.COMPANY_NAME} END,
             ${StockColumns.EXCHANGE} = CASE WHEN :setExchange THEN CAST(:exchange AS text) ELSE ${StockColumns.EXCHANGE} END,
+            ${StockColumns.DESCRIPTION} = CASE WHEN :setDescription THEN CAST(:description AS text) ELSE ${StockColumns.DESCRIPTION} END,
+            ${StockColumns.PRIORITY} = CASE WHEN :setPriority THEN CAST(:priority AS integer) ELSE ${StockColumns.PRIORITY} END,
             ${StockColumns.UPDATED_AT} = NOW()
         WHERE ${StockColumns.ID} = :stockId
         RETURNING ${StockColumns.ALL}
@@ -57,7 +61,11 @@ interface WatchlistWriteDao {
         @Bind("setCompanyName") setCompanyName: Boolean,
         @Bind("companyName") companyName: String?,
         @Bind("setExchange") setExchange: Boolean,
-        @Bind("exchange") exchange: String?
+        @Bind("exchange") exchange: String?,
+        @Bind("setDescription") setDescription: Boolean,
+        @Bind("description") description: String?,
+        @Bind("setPriority") setPriority: Boolean,
+        @Bind("priority") priority: Int?
     ): Stock?
 
     @SqlUpdate(

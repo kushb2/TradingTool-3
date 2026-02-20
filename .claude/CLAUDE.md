@@ -34,6 +34,7 @@ Before writing or modifying code, read the relevant doc in `docs/`:
 | [`docs/telegram-webhook-setup.md`](../docs/telegram-webhook-setup.md) | Telegram webhook env vars, registering/removing webhook on Render |
 | [`docs/watchlist-api.md`](../docs/watchlist-api.md) | Watchlist REST endpoint surface — must be preserved exactly |
 | [`docs/watchlist-schema.md`](../docs/watchlist-schema.md) | DB schema shape, table names, key SQL patterns |
+| [`docs/kite-connect-api.md`](../docs/kite-connect-api.md) | Kite Connect SDK reference: auth, historical data, orders, WebSocket, rate limits, module placement |
 
 ## Backend Conventions (Kotlin + Dropwizard 4.x)
 - Use **Dropwizard 4.x** with **Jakarta EE** (`jakarta.ws.rs.*`, not `javax.ws.rs.*`)
@@ -110,6 +111,12 @@ Before writing or modifying code, read the relevant doc in `docs/`:
 # Backend
 DATABASE_URL=
 PORT=8080
+
+# Kite Connect
+KITE_API_KEY=
+KITE_API_SECRET=
+KITE_USER_ID=
+KITE_REDIRECT_URL=
 
 # Frontend
 VITE_API_URL=http://localhost:8080

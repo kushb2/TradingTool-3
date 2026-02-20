@@ -5,11 +5,20 @@ CREATE TABLE IF NOT EXISTS public.stocks (
     instrument_token BIGINT NOT NULL,
     company_name TEXT NOT NULL,
     exchange TEXT NOT NULL,
+    description TEXT,
+    priority INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(symbol, exchange),
     UNIQUE(instrument_token)
 );
+
+-- Backward-compatible column additions for existing environments
+ALTER TABLE public.stocks
+    ADD COLUMN IF NOT EXISTS description TEXT;
+
+ALTER TABLE public.stocks
+    ADD COLUMN IF NOT EXISTS priority INTEGER;
 
 -- Watchlists table: Watchlist details
 CREATE TABLE IF NOT EXISTS public.watchlists (

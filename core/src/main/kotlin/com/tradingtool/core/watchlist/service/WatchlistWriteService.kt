@@ -40,6 +40,8 @@ class WatchlistWriteService @Inject constructor(
             instrumentToken = input.instrumentToken,
             companyName = input.companyName,
             exchange = input.exchange,
+            description = input.description,
+            priority = input.priority,
         )
     }
 
@@ -50,6 +52,10 @@ class WatchlistWriteService @Inject constructor(
             companyName = input.companyName,
             setExchange = input.fieldsToUpdate.contains(StockUpdateField.EXCHANGE),
             exchange = input.exchange,
+            setDescription = input.fieldsToUpdate.contains(StockUpdateField.DESCRIPTION),
+            description = input.description,
+            setPriority = input.fieldsToUpdate.contains(StockUpdateField.PRIORITY),
+            priority = input.priority,
         )
     }
 

@@ -15,6 +15,8 @@ data class Stock(
     @SerialName("company_name")
     val companyName: String,
     val exchange: String,
+    val description: String? = null,
+    val priority: Int? = null,
     @SerialName("created_at")
     val createdAt: String,
     @SerialName("updated_at")
@@ -85,6 +87,8 @@ data class CreateStockInput(
     @SerialName("company_name")
     val companyName: String,
     val exchange: String,
+    val description: String? = null,
+    val priority: Int? = null,
 )
 
 @Serializable
@@ -127,6 +131,8 @@ data class CreateWatchlistTagInput(
 enum class StockUpdateField {
     COMPANY_NAME,
     EXCHANGE,
+    DESCRIPTION,
+    PRIORITY,
 }
 
 enum class WatchlistUpdateField {
@@ -144,6 +150,8 @@ data class UpdateStockInput(
     val fieldsToUpdate: Set<StockUpdateField>,
     val companyName: String? = null,
     val exchange: String? = null,
+    val description: String? = null,
+    val priority: Int? = null,
 )
 
 @Serializable
@@ -151,6 +159,8 @@ data class UpdateStockPayload(
     @SerialName("company_name")
     val companyName: String? = null,
     val exchange: String? = null,
+    val description: String? = null,
+    val priority: Int? = null,
 )
 
 data class UpdateWatchlistInput(

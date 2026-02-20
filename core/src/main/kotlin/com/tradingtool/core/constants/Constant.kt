@@ -23,10 +23,12 @@ object DatabaseConstants {
         const val INSTRUMENT_TOKEN = "instrument_token"
         const val COMPANY_NAME = "company_name"
         const val EXCHANGE = "exchange"
+        const val DESCRIPTION = "description"
+        const val PRIORITY = "priority"
         const val CREATED_AT = "created_at"
         const val UPDATED_AT = "updated_at"
 
-        const val ALL = "$ID, $SYMBOL, $INSTRUMENT_TOKEN, $COMPANY_NAME, $EXCHANGE, $CREATED_AT, $UPDATED_AT"
+        const val ALL = "$ID, $SYMBOL, $INSTRUMENT_TOKEN, $COMPANY_NAME, $EXCHANGE, $DESCRIPTION, $PRIORITY, $CREATED_AT, $UPDATED_AT"
     }
 
     // ==================== Watchlist Columns ====================

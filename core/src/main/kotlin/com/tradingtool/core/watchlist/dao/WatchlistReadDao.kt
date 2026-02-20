@@ -44,7 +44,8 @@ interface WatchlistReadDao {
     @SqlQuery(
         """
         SELECT s.${StockColumns.ID}, s.${StockColumns.SYMBOL}, s.${StockColumns.INSTRUMENT_TOKEN},
-               s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
+               s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.DESCRIPTION},
+               s.${StockColumns.PRIORITY}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
         FROM public.${Tables.STOCKS} s
         JOIN public.${Tables.STOCK_TAGS} st ON s.${StockColumns.ID} = st.${StockTagColumns.STOCK_ID}
         JOIN public.${Tables.TAGS} t ON st.${StockTagColumns.TAG_ID} = t.${TagColumns.ID}
@@ -122,7 +123,8 @@ interface WatchlistReadDao {
     @SqlQuery(
         """
         SELECT s.${StockColumns.ID}, s.${StockColumns.SYMBOL}, s.${StockColumns.INSTRUMENT_TOKEN},
-               s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
+               s.${StockColumns.COMPANY_NAME}, s.${StockColumns.EXCHANGE}, s.${StockColumns.DESCRIPTION},
+               s.${StockColumns.PRIORITY}, s.${StockColumns.CREATED_AT}, s.${StockColumns.UPDATED_AT}
         FROM public.${Tables.STOCKS} s
         JOIN public.${Tables.WATCHLIST_STOCKS} ws ON s.${StockColumns.ID} = ws.${WatchlistStockColumns.STOCK_ID}
         WHERE ws.${WatchlistStockColumns.WATCHLIST_ID} = :watchlistId
@@ -145,6 +147,8 @@ class StockMapper : RowMapper<Stock> {
             instrumentToken = rs.getLong(StockColumns.INSTRUMENT_TOKEN),
             companyName = rs.getString(StockColumns.COMPANY_NAME),
             exchange = rs.getString(StockColumns.EXCHANGE),
+            description = rs.getString(StockColumns.DESCRIPTION),
+            priority = rs.getObject(StockColumns.PRIORITY, Int::class.java),
             createdAt = toUtcString(rs.getObject(StockColumns.CREATED_AT, OffsetDateTime::class.java)),
             updatedAt = toUtcString(rs.getObject(StockColumns.UPDATED_AT, OffsetDateTime::class.java)),
         )

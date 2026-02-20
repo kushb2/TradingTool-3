@@ -10,76 +10,102 @@ export const apiBaseUrl = (
   .trim()
   .replace(/\/+$/, "");
 
-async function readResponseBody(
-  response: Response,
-): Promise<Record<string, unknown>> {
+function asRecord(value: unknown): Record<string, unknown> | null {
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
+    return null;
+  }
+  return value as Record<string, unknown>;
+}
+
+async function readResponseBody(response: Response): Promise<unknown> {
   const text = await response.text();
   if (text.trim() === "") return {};
+
   try {
-    return JSON.parse(text) as Record<string, unknown>;
+    return JSON.parse(text) as unknown;
   } catch {
     return { message: text };
   }
 }
 
-export async function sendRequest(
-  path: string,
-  requestInit: RequestInit,
-): Promise<Record<string, unknown>> {
-  const response = await fetch(`${apiBaseUrl}${path}`, requestInit);
-  const payload = await readResponseBody(response);
-
-  if (!response.ok || payload.ok === false) {
-    const errorMessage =
-      (payload.telegramDescription as string | undefined) ??
-      (payload.message as string | undefined) ??
-      `Request failed with status ${response.status}`;
-    throw new Error(errorMessage);
+function extractErrorMessage(
+  payload: unknown,
+  fallbackMessage: string,
+): string {
+  if (typeof payload === "string" && payload.trim().length > 0) {
+    return payload;
   }
 
-  return payload;
+  const record = asRecord(payload);
+  if (!record) {
+    return fallbackMessage;
+  }
+
+  const candidates: Array<unknown> = [
+    record.detail,
+    record.message,
+    record.error,
+    record.telegramDescription,
+  ];
+
+  const firstString = candidates.find(
+    (candidate) => typeof candidate === "string" && candidate.trim().length > 0,
+  );
+
+  if (typeof firstString === "string") {
+    return firstString;
+  }
+
+  return fallbackMessage;
+}
+
+export async function sendRequest<T = Record<string, unknown>>(
+  path: string,
+  requestInit: RequestInit,
+): Promise<T> {
+  const method = (requestInit.method ?? "GET").toUpperCase();
+  const response = await fetch(`${apiBaseUrl}${path}`, requestInit);
+  const payload = await readResponseBody(response);
+  const payloadObject = asRecord(payload);
+  const payloadOkFlag = payloadObject?.ok;
+
+  if (!response.ok || payloadOkFlag === false) {
+    throw new Error(
+      extractErrorMessage(
+        payload,
+        `${method} ${path} failed with status ${response.status}`,
+      ),
+    );
+  }
+
+  return payload as T;
 }
 
 export async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  return sendRequest<T>(path, {
     headers: { Accept: "application/json" },
   });
-  if (!response.ok) {
-    throw new Error(`GET ${path} failed with status ${response.status}`);
-  }
-  return response.json() as Promise<T>;
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  return sendRequest<T>(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`POST ${path} failed with status ${response.status}`);
-  }
-  return response.json() as Promise<T>;
 }
 
 export async function patchJson<T>(path: string, body: unknown): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  return sendRequest<T>(path, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(body),
   });
-  if (!response.ok) {
-    throw new Error(`PATCH ${path} failed with status ${response.status}`);
-  }
-  return response.json() as Promise<T>;
 }
 
 export async function deleteJson(path: string): Promise<void> {
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  await sendRequest<unknown>(path, {
     method: "DELETE",
     headers: { Accept: "application/json" },
   });
-  if (!response.ok) {
-    throw new Error(`DELETE ${path} failed with status ${response.status}`);
-  }
 }
