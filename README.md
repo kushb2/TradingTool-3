@@ -24,6 +24,12 @@ mvn -f pom.xml -pl service -am package -DskipTests
 java -jar service/target/service-0.1.0-SNAPSHOT.jar server /Users/kushbhardwaj/Documents/github/TradingTool-3/service/src/main/resources/localconfig.yaml
 ```
 
+Production startup:
+
+```bash
+java -jar service/target/service-0.1.0-SNAPSHOT.jar server service/src/main/resources/serverConfig.yml
+```
+
 ## Frontend (React + Ant Design)
 
 Frontend lives in `frontend/` and uses:

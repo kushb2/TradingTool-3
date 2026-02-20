@@ -1,26 +1,36 @@
 server:
-  host: "0.0.0.0"
-  port: 8080
+  type: simple
+  applicationContextPath: /
+  adminContextPath: /admin
+  connector:
+    type: http
+    port: 8080
+    bindHost: 0.0.0.0
+
+logging:
+  level: INFO
+  appenders:
+    - type: console
 
 service:
-  name: "TradingTool-3"
+  name: ${SERVICE_NAME:-TradingTool-3}
 
 cors:
-  allowedOrigins: "https://kushb2.github.io,http://localhost:5173,http://127.0.0.1:5173"
+  allowedOrigins: ${CORS_ALLOWED_ORIGINS:-https://kushb2.github.io,http://localhost:5173,http://127.0.0.1:5173}
 
 telegram:
-  botToken: ""
-  chatId: ""
-  webhookSecret: ""
-  downloadDir: "data/telegram_downloads"
-  pollTimeoutSeconds: 60
-  requestTimeoutSeconds: 75
-  errorRetrySleepSeconds: 1
-  maxRetrySleepSeconds: 30
+  botToken: ${TELEGRAM_BOT_TOKEN:-}
+  chatId: ${TELEGRAM_CHAT_ID:-}
+  webhookSecret: ${TELEGRAM_WEBHOOK_SECRET:-}
+  downloadDir: ${TELEGRAM_DOWNLOAD_DIR:-data/telegram_downloads}
+  pollTimeoutSeconds: ${TELEGRAM_POLL_TIMEOUT_SECONDS:-60}
+  requestTimeoutSeconds: ${TELEGRAM_REQUEST_TIMEOUT_SECONDS:-75}
+  errorRetrySleepSeconds: ${TELEGRAM_ERROR_RETRY_SLEEP_SECONDS:-1}
+  maxRetrySleepSeconds: ${TELEGRAM_MAX_RETRY_SLEEP_SECONDS:-30}
 
 supabase:
-  dbUrl: ""
+  dbUrl: ${SUPABASE_DB_URL:-}
 
 deployment:
-  renderExternalUrl: "https://tradingtool-3-service.onrender.com"
-  githubPagesUrl: "https://kushb2.github.io/TradingTool-3/"
+  renderExternalUrl: ${RENDER_EXTERNAL_URL:-https://tradingtool-3-service.onrender.com}
+  githubPagesUrl: ${GITHUB_PAGES_URL:-https://kushb2.github.io/TradingTool-3/}

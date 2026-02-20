@@ -9,40 +9,118 @@ class DropwizardConfig : Configuration() {
     @JsonProperty("service")
     @Valid
     @NotNull
-    lateinit var service: ServiceConfig
+    var service: DropwizardServiceConfig = DropwizardServiceConfig()
+
+    @JsonProperty("cors")
+    @Valid
+    @NotNull
+    var cors: DropwizardCorsConfig = DropwizardCorsConfig()
 
     @JsonProperty("telegram")
     @Valid
     @NotNull
-    lateinit var telegram: TelegramConfig
+    var telegram: DropwizardTelegramConfig = DropwizardTelegramConfig()
 
     @JsonProperty("supabase")
     @Valid
     @NotNull
-    lateinit var supabase: SupabaseConfig
+    var supabase: DropwizardSupabaseConfig = DropwizardSupabaseConfig()
 
     @JsonProperty("deployment")
     @Valid
     @NotNull
-    lateinit var deployment: DeploymentConfig
+    var deployment: DropwizardDeploymentConfig = DropwizardDeploymentConfig()
 
     fun toAppConfig(): AppConfig {
+        val defaultAllowedOrigins = "https://kushb2.github.io,http://localhost:5173,http://127.0.0.1:5173"
         return AppConfig(
             server = ServerConfig(
                 host = "0.0.0.0",
                 port = 8080,
             ),
-            service = service,
+            service = ServiceConfig(name = service.name ?: "TradingTool-3"),
             cors = CorsConfig(
-                allowedOrigins = listOf(
-                    "https://kushb2.github.io",
-                    "http://localhost:5173",
-                    "http://127.0.0.1:5173",
-                ),
+                allowedOrigins = parseAllowedOrigins(cors.allowedOrigins ?: defaultAllowedOrigins),
             ),
-            telegram = telegram,
-            supabase = supabase,
-            deployment = deployment,
+            telegram = TelegramConfig(
+                botToken = telegram.botToken ?: "",
+                chatId = telegram.chatId ?: "",
+                webhookSecret = telegram.webhookSecret ?: "",
+                downloadDir = telegram.downloadDir ?: "data/telegram_downloads",
+                pollTimeoutSeconds = telegram.pollTimeoutSeconds,
+                requestTimeoutSeconds = telegram.requestTimeoutSeconds,
+                errorRetrySleepSeconds = telegram.errorRetrySleepSeconds,
+                maxRetrySleepSeconds = telegram.maxRetrySleepSeconds,
+            ),
+            supabase = SupabaseConfig(dbUrl = supabase.dbUrl ?: ""),
+            deployment = DeploymentConfig(
+                renderExternalUrl = deployment.renderExternalUrl ?: "",
+                githubPagesUrl = deployment.githubPagesUrl ?: "https://kushb2.github.io/TradingTool-3/",
+            ),
         )
     }
+
+    private fun parseAllowedOrigins(rawValue: String): List<String> {
+        if (rawValue.isBlank()) {
+            return listOf(
+                "https://kushb2.github.io",
+                "http://localhost:5173",
+                "http://127.0.0.1:5173",
+            )
+        }
+
+        return rawValue.split(",")
+            .map { item -> item.trim() }
+            .filter { item -> item.isNotEmpty() }
+    }
+}
+
+class DropwizardServiceConfig {
+    @JsonProperty("name")
+    var name: String? = "TradingTool-3"
+}
+
+class DropwizardCorsConfig {
+    @JsonProperty("allowedOrigins")
+    var allowedOrigins: String? =
+        "https://kushb2.github.io,http://localhost:5173,http://127.0.0.1:5173"
+}
+
+class DropwizardTelegramConfig {
+    @JsonProperty("botToken")
+    var botToken: String? = ""
+
+    @JsonProperty("chatId")
+    var chatId: String? = ""
+
+    @JsonProperty("webhookSecret")
+    var webhookSecret: String? = ""
+
+    @JsonProperty("downloadDir")
+    var downloadDir: String? = "data/telegram_downloads"
+
+    @JsonProperty("pollTimeoutSeconds")
+    var pollTimeoutSeconds: Int = 60
+
+    @JsonProperty("requestTimeoutSeconds")
+    var requestTimeoutSeconds: Int = 75
+
+    @JsonProperty("errorRetrySleepSeconds")
+    var errorRetrySleepSeconds: Int = 1
+
+    @JsonProperty("maxRetrySleepSeconds")
+    var maxRetrySleepSeconds: Int = 30
+}
+
+class DropwizardSupabaseConfig {
+    @JsonProperty("dbUrl")
+    var dbUrl: String? = ""
+}
+
+class DropwizardDeploymentConfig {
+    @JsonProperty("renderExternalUrl")
+    var renderExternalUrl: String? = ""
+
+    @JsonProperty("githubPagesUrl")
+    var githubPagesUrl: String? = "https://kushb2.github.io/TradingTool-3/"
 }

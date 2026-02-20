@@ -9,12 +9,64 @@ import com.tradingtool.resources.health.HealthResource
 import com.tradingtool.resources.telegram.TelegramResource
 import com.tradingtool.resources.watchlist.WatchlistResource
 import io.dropwizard.core.Application
+import io.dropwizard.configuration.EnvironmentVariableSubstitutor
+import io.dropwizard.configuration.SubstitutingSourceProvider
 import io.dropwizard.core.setup.Bootstrap
 import io.dropwizard.core.setup.Environment
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature
 
 fun main(args: Array<String>) {
-    DropwizardApplication().run(*args)
+    val effectiveArgs: Array<String> = resolveDropwizardArgs(args)
+    DropwizardApplication().run(*effectiveArgs)
+}
+
+private const val LOCAL_CONFIG_ABSOLUTE_PATH =
+    "/Users/kushbhardwaj/Documents/github/TradingTool-3/service/src/main/resources/localconfig.yaml"
+
+private fun resolveDropwizardArgs(args: Array<String>): Array<String> {
+    if (args.isNotEmpty()) {
+        return args
+    }
+
+    val configPath: String = if (isRenderEnvironment()) {
+        firstExistingPath(
+            "/app/serverConfig.yml",
+            "service/src/main/resources/serverConfig.yml",
+            "serverConfig.yml",
+            "service/src/main/resources/localconfig.yaml",
+            LOCAL_CONFIG_ABSOLUTE_PATH,
+        )
+    } else {
+        firstExistingPath(
+            LOCAL_CONFIG_ABSOLUTE_PATH,
+            "service/src/main/resources/localconfig.yaml",
+            "localconfig.yaml",
+            "service/src/main/resources/serverConfig.yml",
+            "serverConfig.yml",
+            "/app/serverConfig.yml",
+        )
+    }
+
+    return arrayOf("server", configPath)
+}
+
+private fun isRenderEnvironment(): Boolean {
+    val renderEnv: String = System.getenv("RENDER")?.trim()?.lowercase() ?: ""
+    return renderEnv == "true" || renderEnv == "1"
+}
+
+private fun firstExistingPath(vararg candidates: String): String {
+    candidates.forEach { candidate ->
+        val path: Path = Paths.get(candidate)
+        if (Files.exists(path)) {
+            return candidate
+        }
+    }
+
+    return candidates.first()
 }
 
 class DropwizardApplication : Application<DropwizardConfig>() {
@@ -22,7 +74,12 @@ class DropwizardApplication : Application<DropwizardConfig>() {
     override fun getName(): String = "TradingTool-3"
 
     override fun initialize(bootstrap: Bootstrap<DropwizardConfig>) {
-        // No additional initialization needed
+        bootstrap.setConfigurationSourceProvider(
+            SubstitutingSourceProvider(
+                bootstrap.configurationSourceProvider,
+                EnvironmentVariableSubstitutor(false),
+            ),
+        )
     }
 
     override fun run(config: DropwizardConfig, environment: Environment) {
