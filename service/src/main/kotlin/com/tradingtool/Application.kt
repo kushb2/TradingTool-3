@@ -4,16 +4,12 @@ import com.google.inject.Guice
 import com.tradingtool.config.AppConfig
 import com.tradingtool.config.loadAppConfig
 import com.tradingtool.di.ServiceModule
-import com.tradingtool.core.telegram.TelegramSender
-import com.tradingtool.telegram.TelegramResource
 import com.tradingtool.watchlist.WatchlistResource
-import com.tradingtool.telegram.registerTelegramResource
 import com.tradingtool.watchlist.registerWatchlistResource
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
-import io.ktor.server.application.ApplicationStopped
 import io.ktor.server.application.call
 import io.ktor.server.application.install
 import io.ktor.server.engine.embeddedServer
@@ -42,14 +38,8 @@ fun main() {
 
 fun Application.module(appConfig: AppConfig = loadAppConfig()) {
     val injector = Guice.createInjector(ServiceModule(appConfig))
-    val telegramSender = injector.getInstance(TelegramSender::class.java)
-    val telegramResource = injector.getInstance(TelegramResource::class.java)
     val watchlistResource = injector.getInstance(WatchlistResource::class.java)
     val appJson = injector.getInstance(Json::class.java)
-
-    monitor.subscribe(ApplicationStopped) {
-        telegramSender.close()
-    }
 
     install(ContentNegotiation) {
         json(appJson)
@@ -103,7 +93,6 @@ fun Application.module(appConfig: AppConfig = loadAppConfig()) {
             )
         }
 
-        registerTelegramResource(resource = telegramResource)
         registerWatchlistResource(resource = watchlistResource)
     }
 }
