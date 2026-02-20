@@ -12,6 +12,9 @@ class TelegramSender(
     private val telegramApiClient: TelegramApiClient,
 ) : AutoCloseable {
 
+    fun isConfigured(): Boolean {
+        return telegramApiClient.isConfigured()
+    }
 
     suspend fun sendText(request: TelegramSendTextRequest): TelegramSendResult {
         val text = request.text.trim()
@@ -123,16 +126,6 @@ class TelegramSender(
         val lowerContentType = request.contentType.lowercase()
         return lowerContentType == "application/vnd.ms-excel"
             || lowerContentType == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    }
-
-    private fun notConfiguredResult(): TelegramSendResult {
-        return TelegramSendResult(
-            status = TelegramSendStatus.NOT_CONFIGURED,
-            response = TelegramSendResponse(
-                ok = false,
-                message = "Telegram is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID.",
-            ),
-        )
     }
 
     private fun badRequestResult(message: String): TelegramSendResult {

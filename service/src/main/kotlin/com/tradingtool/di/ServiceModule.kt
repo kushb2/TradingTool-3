@@ -40,7 +40,9 @@ class ServiceModule(
     @Singleton
     fun provideHttpClient(): HttpClient {
         return HttpClient.newBuilder()
+            .version(HttpClient.Version.HTTP_2)
             .connectTimeout(Duration.ofSeconds(30))
+            .followRedirects(HttpClient.Redirect.NORMAL)
             .build()
     }
 

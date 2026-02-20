@@ -25,11 +25,24 @@ class TelegramApiClient @Inject constructor(
     private val httpRequestExecutor: HttpRequestExecutor,
     private val json: Json,
 ) {
+    /**
+     * Check if Telegram API is properly configured.
+     * Returns false if botToken or chatId are blank.
+     */
     fun isConfigured(): Boolean {
         return botToken.isNotBlank() && chatId.isNotBlank()
     }
 
+    init {
+        // Don't throw - let isConfigured() handle validation
+        // Services can gracefully handle unconfigured state
+    }
+
     internal suspend fun sendText(text: String): TelegramApiCallResult {
+        check(isConfigured()) {
+            "Telegram API is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
+        }
+
         val requestData = HttpRequestData(
             method = "POST",
             uri = URI.create("$baseUrl/sendMessage"),
@@ -48,6 +61,10 @@ class TelegramApiClient @Inject constructor(
         fileFieldName: String,
         request: TelegramSendFileRequest,
     ): TelegramApiCallResult {
+        check(isConfigured()) {
+            "Telegram API is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
+        }
+
         val boundary = "----TelegramBoundary${System.currentTimeMillis()}"
         val requestData = HttpRequestData(
             method = "POST",
