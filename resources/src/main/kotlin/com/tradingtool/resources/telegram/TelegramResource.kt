@@ -7,6 +7,7 @@ import com.tradingtool.core.model.telegram.TelegramSendTextRequest
 import com.tradingtool.core.telegram.TelegramSender
 import com.tradingtool.model.telegram.TelegramRequestModel
 import com.tradingtool.model.telegram.TelegramResponseModel
+import com.google.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
@@ -27,7 +28,7 @@ import java.io.InputStream
 import java.util.concurrent.CompletableFuture
 
 @Path("/api/telegram")
-class TelegramResource(
+class TelegramResource @Inject constructor(
     private val telegramSender: TelegramSender,
 ) {
     /**

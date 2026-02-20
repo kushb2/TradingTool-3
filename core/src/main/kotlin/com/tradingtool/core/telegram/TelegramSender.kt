@@ -5,7 +5,7 @@ import com.tradingtool.core.model.telegram.TelegramSendResponse
 import com.tradingtool.core.model.telegram.TelegramSendResult
 import com.tradingtool.core.model.telegram.TelegramSendStatus
 import com.tradingtool.core.model.telegram.TelegramSendTextRequest
-import jakarta.inject.Singleton
+import com.google.inject.Singleton
 
 @Singleton
 class TelegramSender(

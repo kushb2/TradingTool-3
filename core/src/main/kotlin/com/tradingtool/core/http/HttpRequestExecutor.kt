@@ -1,7 +1,7 @@
 package com.tradingtool.core.http
 
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import com.google.inject.Inject
+import com.google.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.future.await

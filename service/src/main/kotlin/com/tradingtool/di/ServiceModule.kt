@@ -3,6 +3,7 @@ package com.tradingtool.di
 import com.google.inject.AbstractModule
 import com.google.inject.Provides
 import com.google.inject.Singleton
+import com.google.inject.name.Named
 import com.tradingtool.config.AppConfig
 import com.tradingtool.core.database.JdbiHandler
 import com.tradingtool.core.database.WatchlistJdbiHandler
@@ -63,8 +64,8 @@ class ServiceModule(
     @Provides
     @Singleton
     fun provideTelegramApiClient(
-        botToken: String,
-        chatId: String,
+        @Named("telegramBotToken") botToken: String,
+        @Named("telegramChatId") chatId: String,
         httpRequestExecutor: HttpRequestExecutor,
         json: Json,
     ): TelegramApiClient {
@@ -90,9 +91,11 @@ class ServiceModule(
 
     @Provides
     @Singleton
+    @Named("telegramBotToken")
     fun provideBotToken(config: AppConfig): String = config.telegram.botToken
 
     @Provides
     @Singleton
+    @Named("telegramChatId")
     fun provideChatId(config: AppConfig): String = config.telegram.chatId
 }

@@ -13,6 +13,7 @@ import com.tradingtool.core.model.watchlist.UpdateWatchlistPayload
 import com.tradingtool.core.model.watchlist.WatchlistUpdateField
 import com.tradingtool.core.watchlist.service.WatchlistReadService
 import com.tradingtool.core.watchlist.service.WatchlistWriteService
+import com.google.inject.Inject
 import jakarta.ws.rs.Consumes
 import jakarta.ws.rs.DELETE
 import jakarta.ws.rs.GET
@@ -32,7 +33,7 @@ import kotlinx.coroutines.future.asCompletableFuture
 import java.util.concurrent.CompletableFuture
 
 @Path("/api/watchlist")
-class WatchlistResource(
+class WatchlistResource @Inject constructor(
     private val readService: WatchlistReadService,
     private val writeService: WatchlistWriteService,
 ) {

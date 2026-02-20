@@ -21,8 +21,8 @@ import com.tradingtool.core.model.watchlist.WatchlistTag
 import com.tradingtool.core.model.watchlist.WatchlistUpdateField
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
 import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import com.google.inject.Inject
+import com.google.inject.Singleton
 
 /**
  * Write service for watchlist domain operations.

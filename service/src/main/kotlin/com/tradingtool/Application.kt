@@ -16,6 +16,7 @@ import io.dropwizard.core.setup.Environment
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import org.glassfish.jersey.media.multipart.MultiPartFeature
 import org.glassfish.jersey.server.filter.RolesAllowedDynamicFeature
 
 fun main(args: Array<String>) {
@@ -102,6 +103,7 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         environment.jersey().register(healthResource)
         environment.jersey().register(telegramResource)
         environment.jersey().register(watchlistResource)
+        environment.jersey().register(MultiPartFeature::class.java)
 
         // Enable RolesAllowed feature for security annotations
         environment.jersey().register(RolesAllowedDynamicFeature::class.java)

@@ -10,8 +10,8 @@ import com.tradingtool.core.model.watchlist.Watchlist
 import com.tradingtool.core.model.watchlist.WatchlistStock
 import com.tradingtool.core.model.watchlist.WatchlistTag
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import com.google.inject.Inject
+import com.google.inject.Singleton
 
 /**
  * Read-only service for watchlist domain operations.

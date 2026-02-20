@@ -4,8 +4,9 @@ import com.tradingtool.core.http.HttpRequestData
 import com.tradingtool.core.http.HttpRequestExecutor
 import com.tradingtool.core.model.telegram.TelegramApiResponse
 import com.tradingtool.core.model.telegram.TelegramSendFileRequest
-import jakarta.inject.Inject
-import jakarta.inject.Singleton
+import com.google.inject.Inject
+import com.google.inject.Singleton
+import com.google.inject.name.Named
 import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.net.URLEncoder
@@ -20,8 +21,8 @@ internal data class TelegramApiCallResult(
 
 @Singleton
 class TelegramApiClient @Inject constructor(
-    private val botToken: String,
-    private val chatId: String,
+    @Named("telegramBotToken") private val botToken: String,
+    @Named("telegramChatId") private val chatId: String,
     private val httpRequestExecutor: HttpRequestExecutor,
     private val json: Json,
 ) {

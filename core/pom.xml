@@ -26,6 +26,11 @@
             <artifactId>kotlin-stdlib</artifactId>
             <version>${kotlin.version}</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.inject</groupId>
+            <artifactId>guice</artifactId>
+            <version>7.0.0</version>
+        </dependency>
 
         <!-- Coroutines with JDK8 CompletableFuture bridge -->
         <dependency>
@@ -46,11 +51,6 @@
             <groupId>org.jdbi</groupId>
             <artifactId>jdbi3-core</artifactId>
             <version>3.45.0</version>
-        </dependency>
-        <dependency>
-            <groupId>jakarta.inject</groupId>
-            <artifactId>jakarta.inject-api</artifactId>
-            <version>2.0.1</version>
         </dependency>
         <dependency>
             <groupId>org.jdbi</groupId>
