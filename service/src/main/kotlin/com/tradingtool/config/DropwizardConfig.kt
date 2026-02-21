@@ -1,6 +1,7 @@
 package com.tradingtool.config
 
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.tradingtool.core.kite.KiteConfig
 import io.dropwizard.core.Configuration
 import jakarta.validation.Valid
 import jakarta.validation.constraints.NotNull
