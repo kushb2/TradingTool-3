@@ -11,6 +11,7 @@ import kotlinx.serialization.json.Json
 import java.net.URI
 import java.net.http.HttpClient
 import java.time.Duration
+import kotlin.system.exitProcess
 
 /**
  * Standalone job: sends the daily Kite login URL to Telegram and wakes Render.
@@ -50,6 +51,7 @@ fun main() {
         wakeRenderService(wakeUrl, executor)
         println("Render wake-up ping sent.")
     }
+    exitProcess(0)
 }
 
 // Render cold starts can take ~60s — generous timeout + existing retry logic handles it
