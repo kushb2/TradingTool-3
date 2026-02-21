@@ -2,19 +2,23 @@ package com.tradingtool.core.watchlist.service
 
 import com.tradingtool.core.database.WatchlistJdbiHandler
 import com.tradingtool.core.model.watchlist.CreateStockInput
+import com.tradingtool.core.model.watchlist.CreateStockNoteInput
 import com.tradingtool.core.model.watchlist.CreateStockTagInput
 import com.tradingtool.core.model.watchlist.CreateTagInput
 import com.tradingtool.core.model.watchlist.CreateWatchlistInput
 import com.tradingtool.core.model.watchlist.CreateWatchlistStockInput
 import com.tradingtool.core.model.watchlist.CreateWatchlistTagInput
 import com.tradingtool.core.model.watchlist.Stock
+import com.tradingtool.core.model.watchlist.StockNote
 import com.tradingtool.core.model.watchlist.StockTag
 import com.tradingtool.core.model.watchlist.StockUpdateField
 import com.tradingtool.core.model.watchlist.Tag
 import com.tradingtool.core.model.watchlist.TagUpdateField
+import com.tradingtool.core.model.watchlist.UpdateLayoutPayload
 import com.tradingtool.core.model.watchlist.UpdateStockInput
 import com.tradingtool.core.model.watchlist.UpdateTagInput
 import com.tradingtool.core.model.watchlist.UpdateWatchlistInput
+import com.tradingtool.core.model.watchlist.UserLayout
 import com.tradingtool.core.model.watchlist.Watchlist
 import com.tradingtool.core.model.watchlist.WatchlistStock
 import com.tradingtool.core.model.watchlist.WatchlistTag
@@ -167,6 +171,18 @@ class WatchlistWriteService @Inject constructor(
 
     suspend fun deleteAllWatchlistStocks(watchlistId: Long): Int = runInTransaction { _, writeDao ->
         writeDao.deleteAllWatchlistStocks(watchlistId)
+    }
+
+    suspend fun createStockNote(stockId: Long, input: CreateStockNoteInput): StockNote = runInTransaction { _, writeDao ->
+        writeDao.createStockNote(stockId = stockId, content = input.content)
+    }
+
+    suspend fun deleteStockNote(stockId: Long, noteId: Long): Int = runInTransaction { _, writeDao ->
+        writeDao.deleteStockNote(noteId = noteId, stockId = stockId)
+    }
+
+    suspend fun updateLayout(payload: UpdateLayoutPayload): UserLayout? = runInTransaction { _, writeDao ->
+        writeDao.updateLayout(layoutData = payload.layoutData)
     }
 
     private suspend fun <T> runInTransaction(operation: (WatchlistReadDao, WatchlistWriteDao) -> T): T {

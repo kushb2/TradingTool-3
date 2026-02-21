@@ -7,6 +7,8 @@ import com.tradingtool.core.constants.DatabaseConstants.TagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistStockColumns
 import com.tradingtool.core.constants.DatabaseConstants.StockTagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistTagColumns
+import com.tradingtool.core.constants.DatabaseConstants.StockNoteColumns
+import com.tradingtool.core.constants.DatabaseConstants.UserLayoutColumns
 import com.tradingtool.core.model.watchlist.*
 import org.jdbi.v3.core.mapper.RowMapper
 import org.jdbi.v3.core.statement.StatementContext
@@ -25,6 +27,8 @@ import java.time.OffsetDateTime
 @RegisterRowMapper(WatchlistStockMapper::class)
 @RegisterRowMapper(StockTagMapper::class)
 @RegisterRowMapper(WatchlistTagMapper::class)
+@RegisterRowMapper(StockNoteMapper::class)
+@RegisterRowMapper(UserLayoutMapper::class)
 interface WatchlistReadDao {
 
     // ==================== Stock Queries ====================
@@ -96,6 +100,9 @@ interface WatchlistReadDao {
     @SqlQuery("SELECT ${StockTagColumns.ALL} FROM public.${Tables.STOCK_TAGS} WHERE ${StockTagColumns.STOCK_ID} = :stockId")
     fun getStockTagsForStock(@Bind("stockId") stockId: Long): List<StockTag>
 
+    @SqlQuery("SELECT ${StockTagColumns.ALL} FROM public.${Tables.STOCK_TAGS} ORDER BY ${StockTagColumns.STOCK_ID}")
+    fun getAllStockTags(): List<StockTag>
+
     // ==================== Watchlist-Tag Relationship Queries ====================
 
     @SqlQuery("SELECT ${WatchlistTagColumns.ALL} FROM public.${Tables.WATCHLIST_TAGS} WHERE ${WatchlistTagColumns.WATCHLIST_ID} = :watchlistId AND ${WatchlistTagColumns.TAG_ID} = :tagId LIMIT 1")
@@ -114,6 +121,9 @@ interface WatchlistReadDao {
 
     @SqlQuery("SELECT ${WatchlistTagColumns.ALL} FROM public.${Tables.WATCHLIST_TAGS} WHERE ${WatchlistTagColumns.WATCHLIST_ID} = :watchlistId")
     fun getWatchlistTagsForWatchlist(@Bind("watchlistId") watchlistId: Long): List<WatchlistTag>
+
+    @SqlQuery("SELECT ${WatchlistTagColumns.ALL} FROM public.${Tables.WATCHLIST_TAGS} ORDER BY ${WatchlistTagColumns.WATCHLIST_ID}")
+    fun getAllWatchlistTags(): List<WatchlistTag>
 
     // ==================== Watchlist-Stock Relationship Queries ====================
 
@@ -135,6 +145,16 @@ interface WatchlistReadDao {
 
     @SqlQuery("SELECT ${WatchlistStockColumns.ALL} FROM public.${Tables.WATCHLIST_STOCKS} WHERE ${WatchlistStockColumns.WATCHLIST_ID} = :watchlistId ORDER BY ${WatchlistStockColumns.CREATED_AT} DESC")
     fun getWatchlistStocksForWatchlist(@Bind("watchlistId") watchlistId: Long): List<WatchlistStock>
+
+    // ==================== Stock Notes Queries ====================
+
+    @SqlQuery("SELECT ${StockNoteColumns.ALL} FROM public.${Tables.STOCK_NOTES} WHERE ${StockNoteColumns.STOCK_ID} = :stockId ORDER BY ${StockNoteColumns.CREATED_AT} ASC")
+    fun getNotesForStock(@Bind("stockId") stockId: Long): List<StockNote>
+
+    // ==================== User Layout Queries ====================
+
+    @SqlQuery("SELECT ${UserLayoutColumns.ID}, ${UserLayoutColumns.LAYOUT_DATA}::text AS ${UserLayoutColumns.LAYOUT_DATA}, ${UserLayoutColumns.UPDATED_AT} FROM public.${Tables.USER_LAYOUT} WHERE ${UserLayoutColumns.ID} = 1 LIMIT 1")
+    fun getLayout(): UserLayout?
 }
 
 // ==================== Row Mappers ====================
@@ -232,6 +252,37 @@ class WatchlistTagMapper : RowMapper<WatchlistTag> {
             watchlistId = rs.getLong(WatchlistTagColumns.WATCHLIST_ID),
             tagId = rs.getLong(WatchlistTagColumns.TAG_ID),
             createdAt = toUtcString(rs.getObject(WatchlistTagColumns.CREATED_AT, OffsetDateTime::class.java)),
+        )
+    }
+
+    private fun toUtcString(value: OffsetDateTime?): String {
+        return value?.toInstant()?.toString()
+            ?: throw IllegalStateException("Unexpected null timestamp in database row")
+    }
+}
+
+class StockNoteMapper : RowMapper<StockNote> {
+    override fun map(rs: ResultSet, ctx: StatementContext): StockNote {
+        return StockNote(
+            id = rs.getLong(StockNoteColumns.ID),
+            stockId = rs.getLong(StockNoteColumns.STOCK_ID),
+            content = rs.getString(StockNoteColumns.CONTENT),
+            createdAt = toUtcString(rs.getObject(StockNoteColumns.CREATED_AT, OffsetDateTime::class.java)),
+        )
+    }
+
+    private fun toUtcString(value: OffsetDateTime?): String {
+        return value?.toInstant()?.toString()
+            ?: throw IllegalStateException("Unexpected null timestamp in database row")
+    }
+}
+
+class UserLayoutMapper : RowMapper<UserLayout> {
+    override fun map(rs: ResultSet, ctx: StatementContext): UserLayout {
+        return UserLayout(
+            id = rs.getInt(UserLayoutColumns.ID),
+            layoutData = rs.getString(UserLayoutColumns.LAYOUT_DATA) ?: "{}",
+            updatedAt = toUtcString(rs.getObject(UserLayoutColumns.UPDATED_AT, OffsetDateTime::class.java)),
         )
     }
 

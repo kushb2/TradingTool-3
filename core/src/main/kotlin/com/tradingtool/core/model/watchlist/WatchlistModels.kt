@@ -205,6 +205,55 @@ data class WatchlistWithStocks(
     val stocks: List<StockWithTags>,
 )
 
+// ==================== Stock Notes ====================
+
+@Serializable
+data class StockNote(
+    val id: Long,
+    @SerialName("stock_id")
+    val stockId: Long,
+    val content: String,
+    @SerialName("created_at")
+    val createdAt: String,
+)
+
+@Serializable
+data class CreateStockNoteInput(
+    val content: String,
+)
+
+// ==================== User Layout ====================
+
+@Serializable
+data class UserLayout(
+    val id: Int,
+    @SerialName("layout_data")
+    val layoutData: String, // raw JSON string, parsed by frontend
+    @SerialName("updated_at")
+    val updatedAt: String,
+)
+
+@Serializable
+data class UpdateLayoutPayload(
+    @SerialName("layout_data")
+    val layoutData: String,
+)
+
+// ==================== Instrument Search ====================
+
+@Serializable
+data class InstrumentSearchResult(
+    @SerialName("instrument_token")
+    val instrumentToken: Long,
+    @SerialName("trading_symbol")
+    val tradingSymbol: String,
+    @SerialName("company_name")
+    val companyName: String,
+    val exchange: String,
+    @SerialName("instrument_type")
+    val instrumentType: String,
+)
+
 // ==================== Health Check ====================
 
 @Serializable

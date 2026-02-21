@@ -3,9 +3,11 @@ package com.tradingtool.core.watchlist.service
 import com.tradingtool.core.constants.DatabaseConstants.Tables
 import com.tradingtool.core.database.WatchlistJdbiHandler
 import com.tradingtool.core.model.watchlist.Stock
+import com.tradingtool.core.model.watchlist.StockNote
 import com.tradingtool.core.model.watchlist.StockTag
 import com.tradingtool.core.model.watchlist.TableAccessStatus
 import com.tradingtool.core.model.watchlist.Tag
+import com.tradingtool.core.model.watchlist.UserLayout
 import com.tradingtool.core.model.watchlist.Watchlist
 import com.tradingtool.core.model.watchlist.WatchlistStock
 import com.tradingtool.core.model.watchlist.WatchlistTag
@@ -101,6 +103,22 @@ class WatchlistReadService @Inject constructor(
 
     suspend fun getWatchlistStocksForWatchlist(watchlistId: Long): List<WatchlistStock> = runRead { dao ->
         dao.getWatchlistStocksForWatchlist(watchlistId)
+    }
+
+    suspend fun getAllStockTags(): List<StockTag> = runRead { dao ->
+        dao.getAllStockTags()
+    }
+
+    suspend fun getAllWatchlistTags(): List<WatchlistTag> = runRead { dao ->
+        dao.getAllWatchlistTags()
+    }
+
+    suspend fun getNotesForStock(stockId: Long): List<StockNote> = runRead { dao ->
+        dao.getNotesForStock(stockId)
+    }
+
+    suspend fun getLayout(): UserLayout? = runRead { dao ->
+        dao.getLayout()
     }
 
     suspend fun checkConnection(): Boolean {

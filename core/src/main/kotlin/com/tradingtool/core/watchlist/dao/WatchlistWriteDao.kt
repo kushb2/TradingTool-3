@@ -7,6 +7,8 @@ import com.tradingtool.core.constants.DatabaseConstants.TagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistStockColumns
 import com.tradingtool.core.constants.DatabaseConstants.StockTagColumns
 import com.tradingtool.core.constants.DatabaseConstants.WatchlistTagColumns
+import com.tradingtool.core.constants.DatabaseConstants.StockNoteColumns
+import com.tradingtool.core.constants.DatabaseConstants.UserLayoutColumns
 import com.tradingtool.core.model.watchlist.*
 import org.jdbi.v3.sqlobject.config.RegisterRowMapper
 import org.jdbi.v3.sqlobject.customizer.Bind
@@ -23,6 +25,8 @@ import org.jdbi.v3.sqlobject.statement.SqlUpdate
 @RegisterRowMapper(WatchlistStockMapper::class)
 @RegisterRowMapper(StockTagMapper::class)
 @RegisterRowMapper(WatchlistTagMapper::class)
+@RegisterRowMapper(StockNoteMapper::class)
+@RegisterRowMapper(UserLayoutMapper::class)
 interface WatchlistWriteDao {
 
     // ==================== Stock Write Operations ====================
@@ -299,4 +303,42 @@ interface WatchlistWriteDao {
         """
     )
     fun deleteAllWatchlistStocks(@Bind("watchlistId") watchlistId: Long): Int
+
+    // ==================== Stock Notes Write Operations ====================
+
+    @SqlQuery(
+        """
+        INSERT INTO public.${Tables.STOCK_NOTES} (${StockNoteColumns.STOCK_ID}, ${StockNoteColumns.CONTENT})
+        VALUES (:stockId, :content)
+        RETURNING ${StockNoteColumns.ALL}
+        """
+    )
+    fun createStockNote(
+        @Bind("stockId") stockId: Long,
+        @Bind("content") content: String,
+    ): StockNote
+
+    @SqlUpdate(
+        """
+        DELETE FROM public.${Tables.STOCK_NOTES}
+        WHERE ${StockNoteColumns.ID} = :noteId AND ${StockNoteColumns.STOCK_ID} = :stockId
+        """
+    )
+    fun deleteStockNote(
+        @Bind("noteId") noteId: Long,
+        @Bind("stockId") stockId: Long,
+    ): Int
+
+    // ==================== User Layout Write Operations ====================
+
+    @SqlQuery(
+        """
+        UPDATE public.${Tables.USER_LAYOUT}
+        SET ${UserLayoutColumns.LAYOUT_DATA} = CAST(:layoutData AS JSONB),
+            ${UserLayoutColumns.UPDATED_AT} = NOW()
+        WHERE ${UserLayoutColumns.ID} = 1
+        RETURNING ${UserLayoutColumns.ID}, ${UserLayoutColumns.LAYOUT_DATA}::text AS ${UserLayoutColumns.LAYOUT_DATA}, ${UserLayoutColumns.UPDATED_AT}
+        """
+    )
+    fun updateLayout(@Bind("layoutData") layoutData: String): UserLayout?
 }

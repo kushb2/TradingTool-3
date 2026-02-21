@@ -31,3 +31,29 @@ export interface Tag {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface StockNote {
+  id: number;
+  stockId: number;
+  content: string;
+  createdAt: string;
+}
+
+export interface UserLayout {
+  id: number;
+  layoutData: string; // raw JSON string: { watchlistOrder: number[], stockOrder: Record<string, number[]> }
+  updatedAt: string;
+}
+
+export interface LayoutData {
+  watchlistOrder: number[];
+  stockOrder: Record<string, number[]>; // key is watchlistId string
+}
+
+export interface InstrumentSearchResult {
+  instrumentToken: number;
+  tradingSymbol: string;
+  companyName: string;
+  exchange: string;
+  instrumentType: string;
+}

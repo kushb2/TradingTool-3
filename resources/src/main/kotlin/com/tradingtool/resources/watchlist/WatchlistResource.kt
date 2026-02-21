@@ -292,6 +292,20 @@ class WatchlistResource @Inject constructor(
     }.asCompletableFuture()
 
     @GET
+    @Path("stock-tags/all")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listAllStockTags(): CompletableFuture<Response> = ioScope.async {
+        runResourceAction { ok(readService.getAllStockTags()) }
+    }.asCompletableFuture()
+
+    @GET
+    @Path("watchlist-tags/all")
+    @Produces(MediaType.APPLICATION_JSON)
+    fun listAllWatchlistTags(): CompletableFuture<Response> = ioScope.async {
+        runResourceAction { ok(readService.getAllWatchlistTags()) }
+    }.asCompletableFuture()
+
+    @GET
     @Path("stocks/{stockId}/tags")
     @Produces(MediaType.APPLICATION_JSON)
     fun listTagsForStock(@PathParam("stockId") stockId: String): CompletableFuture<Response> = ioScope.async {

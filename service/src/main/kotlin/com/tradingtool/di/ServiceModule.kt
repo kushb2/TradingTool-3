@@ -22,7 +22,10 @@ import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
 import com.tradingtool.core.watchlist.service.WatchlistReadService
 import com.tradingtool.core.watchlist.service.WatchlistWriteService
 import com.tradingtool.resources.health.HealthResource
+import com.tradingtool.resources.instruments.InstrumentResource
 import com.tradingtool.resources.kite.KiteResource
+import com.tradingtool.resources.layout.LayoutResource
+import com.tradingtool.resources.notes.StockNotesResource
 import com.tradingtool.resources.telegram.TelegramResource
 import com.tradingtool.resources.watchlist.WatchlistResource
 import java.net.http.HttpClient
@@ -42,6 +45,9 @@ class ServiceModule(
         bind(KiteResource::class.java).`in`(Singleton::class.java)
         bind(TelegramResource::class.java).`in`(Singleton::class.java)
         bind(WatchlistResource::class.java).`in`(Singleton::class.java)
+        bind(InstrumentResource::class.java).`in`(Singleton::class.java)
+        bind(StockNotesResource::class.java).`in`(Singleton::class.java)
+        bind(LayoutResource::class.java).`in`(Singleton::class.java)
     }
 
     @Provides

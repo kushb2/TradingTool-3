@@ -15,6 +15,8 @@ object DatabaseConstants {
         const val WATCHLIST_TAGS = "watchlist_tags"
         const val WATCHLIST_STOCKS = "watchlist_stocks"
         const val KITE_TOKENS = "kite_tokens"
+        const val STOCK_NOTES = "stock_notes"
+        const val USER_LAYOUT = "user_layout"
     }
 
     // ==================== KiteToken Columns ====================
@@ -88,5 +90,22 @@ object DatabaseConstants {
         const val CREATED_AT = "created_at"
 
         const val ALL = "$ID, $WATCHLIST_ID, $TAG_ID, $CREATED_AT"
+    }
+
+    // ==================== StockNote Columns ====================
+    object StockNoteColumns {
+        const val ID = "id"
+        const val STOCK_ID = "stock_id"
+        const val CONTENT = "content"
+        const val CREATED_AT = "created_at"
+
+        const val ALL = "$ID, $STOCK_ID, $CONTENT, $CREATED_AT"
+    }
+
+    // ==================== UserLayout Columns ====================
+    object UserLayoutColumns {
+        const val ID = "id"
+        const val LAYOUT_DATA = "layout_data"
+        const val UPDATED_AT = "updated_at"
     }
 }
