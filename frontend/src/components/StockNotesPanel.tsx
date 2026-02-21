@@ -55,7 +55,7 @@ export function StockNotesPanel({ stock, tags, onClose, onUpdateDescription, onU
     <div
       style={{
         position: "fixed",
-        bottom: 24,
+        bottom: 80,
         right: 24,
         width: 360,
         height: 520,

@@ -2,6 +2,7 @@ package com.tradingtool.resources.kite
 
 import com.google.inject.Inject
 import com.tradingtool.core.database.KiteTokenJdbiHandler
+import com.tradingtool.core.kite.InstrumentCache
 import com.tradingtool.core.kite.KiteConnectClient
 import com.tradingtool.core.model.telegram.TelegramSendTextRequest
 import com.tradingtool.core.telegram.TelegramSender
@@ -24,6 +25,7 @@ class KiteResource @Inject constructor(
     private val kiteClient: KiteConnectClient,
     private val tokenDb: KiteTokenJdbiHandler,
     private val telegramSender: TelegramSender,
+    private val instrumentCache: InstrumentCache,
 ) {
     private val ioScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
@@ -63,6 +65,16 @@ class KiteResource @Inject constructor(
             telegramSender.sendText(
                 TelegramSendTextRequest("Kite login successful. Token refreshed for user: ${user.userId}")
             )
+            // Refresh instrument cache on background thread — non-blocking
+            Thread {
+                try {
+                    val instruments = kiteClient.client().getInstruments("NSE")
+                    instrumentCache.refresh(instruments)
+                    println("[InstrumentCache] Refreshed ${instrumentCache.size()} NSE instruments after login")
+                } catch (e: Exception) {
+                    println("[InstrumentCache] Cache refresh after login failed: ${e.message}")
+                }
+            }.also { it.isDaemon = true }.start()
             Response.ok(mapOf("status" to "authenticated", "userId" to user.userId)).build()
         } catch (e: Exception) {
             Response.status(Response.Status.INTERNAL_SERVER_ERROR)

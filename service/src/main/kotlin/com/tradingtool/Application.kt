@@ -117,6 +117,23 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         val objectMapper: ObjectMapper = environment.objectMapper
         objectMapper.registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
 
+        // Populate instrument cache at startup if Kite token is already set
+        val kiteClient = injector.getInstance(com.tradingtool.core.kite.KiteConnectClient::class.java)
+        val instrumentCache = injector.getInstance(com.tradingtool.core.kite.InstrumentCache::class.java)
+        if (kiteClient.isAuthenticated) {
+            Thread {
+                try {
+                    val instruments = kiteClient.client().getInstruments("NSE")
+                    instrumentCache.refresh(instruments)
+                    println("[InstrumentCache] Loaded ${instrumentCache.size()} NSE instruments at startup")
+                } catch (e: Exception) {
+                    println("[InstrumentCache] Failed to load at startup: ${e.message}")
+                }
+            }.also { it.isDaemon = true }.start()
+        } else {
+            println("[InstrumentCache] Kite not authenticated — cache empty. Complete Kite login to enable instrument search.")
+        }
+
         // Get resource instances from Guice
         val healthResource = injector.getInstance(HealthResource::class.java)
         val kiteResource = injector.getInstance(KiteResource::class.java)
