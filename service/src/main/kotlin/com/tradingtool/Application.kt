@@ -5,13 +5,10 @@ import com.google.inject.Guice
 import com.tradingtool.config.AppConfig
 import com.tradingtool.config.DropwizardConfig
 import com.tradingtool.di.ServiceModule
-import com.tradingtool.core.database.KiteTokenJdbiHandler
-import com.tradingtool.core.kite.KiteConnectClient
 import com.tradingtool.resources.health.HealthResource
 import com.tradingtool.resources.kite.KiteResource
 import com.tradingtool.resources.telegram.TelegramResource
 import com.tradingtool.resources.watchlist.WatchlistResource
-import kotlinx.coroutines.runBlocking
 import io.dropwizard.core.Application
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor
 import io.dropwizard.configuration.SubstitutingSourceProvider
@@ -116,17 +113,6 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         // Register Jackson module for Kotlin
         val objectMapper: ObjectMapper = environment.objectMapper
         objectMapper.registerModule(com.fasterxml.jackson.module.kotlin.KotlinModule.Builder().build())
-
-        // Load persisted Kite token from DB so the client is authenticated on startup.
-        // On first deploy (empty table) this is a no-op; user logs in via /kite/callback.
-        val kiteClient = injector.getInstance(KiteConnectClient::class.java)
-        val kiteTokenDb = injector.getInstance(KiteTokenJdbiHandler::class.java)
-        runBlocking {
-            val savedToken = runCatching { kiteTokenDb.read { dao -> dao.getLatestToken() } }.getOrNull()
-            if (savedToken != null) {
-                kiteClient.applyAccessToken(savedToken)
-            }
-        }
 
         // Get resource instances from Guice
         val healthResource = injector.getInstance(HealthResource::class.java)

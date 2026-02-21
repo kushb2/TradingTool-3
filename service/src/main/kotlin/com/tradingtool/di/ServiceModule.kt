@@ -5,11 +5,11 @@ import com.google.inject.Provides
 import com.google.inject.Singleton
 import com.google.inject.name.Named
 import com.tradingtool.config.AppConfig
+import com.tradingtool.core.database.JdbiHandler
 import com.tradingtool.core.kite.InstrumentCache
-import com.tradingtool.core.kite.KiteConnectClient
 import com.tradingtool.core.kite.KiteTokenReadDao
 import com.tradingtool.core.kite.KiteTokenWriteDao
-import com.tradingtool.core.database.JdbiHandler
+import com.tradingtool.core.kite.KiteConnectClient
 import com.tradingtool.core.database.KiteTokenJdbiHandler
 import com.tradingtool.core.database.WatchlistJdbiHandler
 import com.tradingtool.core.http.HttpRequestExecutor
