@@ -4,6 +4,13 @@
 Personal weekend project. Solo developer. Prioritize **simplicity and maintainability** over cleverness.
 When in doubt, choose the simpler solution.
 
+## Development Phase
+**This project is in active development. There are no backward compatibility or migration constraints.**
+- Feel free to rename, restructure, delete, or rewrite any code, files, or DB schema
+- Do not add deprecation shims, compatibility layers, or migration guards
+- If a better structure is found, refactor directly — no need to preserve the old one
+- DB migrations in `db/migrations/` are applied manually to Supabase; dropping and recreating tables is fine
+
 ## Stack
 | Layer | Tech |
 |-------|------|

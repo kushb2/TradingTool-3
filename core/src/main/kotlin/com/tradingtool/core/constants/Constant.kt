@@ -14,6 +14,14 @@ object DatabaseConstants {
         const val STOCK_TAGS = "stock_tags"
         const val WATCHLIST_TAGS = "watchlist_tags"
         const val WATCHLIST_STOCKS = "watchlist_stocks"
+        const val KITE_TOKENS = "kite_tokens"
+    }
+
+    // ==================== KiteToken Columns ====================
+    object KiteTokenColumns {
+        const val ID = "id"
+        const val ACCESS_TOKEN = "access_token"
+        const val CREATED_AT = "created_at"
     }
 
     // ==================== Stock Columns ====================

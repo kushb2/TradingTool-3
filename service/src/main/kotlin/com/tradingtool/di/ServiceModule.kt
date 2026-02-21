@@ -7,7 +7,10 @@ import com.google.inject.name.Named
 import com.tradingtool.config.AppConfig
 import com.tradingtool.core.kite.InstrumentCache
 import com.tradingtool.core.kite.KiteConnectClient
+import com.tradingtool.core.kite.KiteTokenReadDao
+import com.tradingtool.core.kite.KiteTokenWriteDao
 import com.tradingtool.core.database.JdbiHandler
+import com.tradingtool.core.database.KiteTokenJdbiHandler
 import com.tradingtool.core.database.WatchlistJdbiHandler
 import com.tradingtool.core.http.HttpRequestExecutor
 import com.tradingtool.core.http.JdkHttpRequestExecutor
@@ -19,6 +22,7 @@ import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
 import com.tradingtool.core.watchlist.service.WatchlistReadService
 import com.tradingtool.core.watchlist.service.WatchlistWriteService
 import com.tradingtool.resources.health.HealthResource
+import com.tradingtool.resources.kite.KiteResource
 import com.tradingtool.resources.telegram.TelegramResource
 import com.tradingtool.resources.watchlist.WatchlistResource
 import java.net.http.HttpClient
@@ -35,6 +39,7 @@ class ServiceModule(
 
         // Register resources for Dropwizard
         bind(HealthResource::class.java).`in`(Singleton::class.java)
+        bind(KiteResource::class.java).`in`(Singleton::class.java)
         bind(TelegramResource::class.java).`in`(Singleton::class.java)
         bind(WatchlistResource::class.java).`in`(Singleton::class.java)
     }
@@ -62,6 +67,16 @@ class ServiceModule(
     fun provideDatabaseConfig(config: AppConfig): DatabaseConfig {
         return DatabaseConfig(
             jdbcUrl = config.supabase.dbUrl,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideKiteTokenJdbiHandler(config: DatabaseConfig): KiteTokenJdbiHandler {
+        return JdbiHandler(
+            config = config,
+            readDaoClass = KiteTokenReadDao::class.java,
+            writeDaoClass = KiteTokenWriteDao::class.java,
         )
     }
 
