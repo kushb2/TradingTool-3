@@ -19,6 +19,8 @@ export interface WatchlistDataState {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
+
+  upsertStockLocally: (stock: Stock) => void;
   addStockToWatchlist: (watchlistId: number, stockId: number) => Promise<void>;
   removeStockFromWatchlist: (watchlistId: number, stockId: number) => Promise<void>;
   createWatchlist: (name: string, description?: string) => Promise<Watchlist>;
@@ -78,6 +80,14 @@ export function useWatchlistData(): WatchlistDataState {
   useEffect(() => {
     void fetchAll();
   }, [fetchAll]);
+
+  const upsertStockLocally = (stock: Stock) => {
+    setStocks((prev) =>
+      prev.some((s) => s.id === stock.id)
+        ? prev.map((s) => (s.id === stock.id ? stock : s))
+        : [...prev, stock],
+    );
+  };
 
   const addStockToWatchlist = async (watchlistId: number, stockId: number) => {
     const junction = await postJson<WatchlistStock>("/api/watchlist/items", {
@@ -167,6 +177,7 @@ export function useWatchlistData(): WatchlistDataState {
     loading,
     error,
     refetch: fetchAll,
+    upsertStockLocally,
     addStockToWatchlist,
     removeStockFromWatchlist,
     createWatchlist,

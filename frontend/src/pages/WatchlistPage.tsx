@@ -110,13 +110,17 @@ export function WatchlistPage() {
     }
   };
 
-  const handleStockAdded = (watchlistId: number, stock: Stock) => {
+  const handleStockAdded = async (watchlistId: number, stock: Stock) => {
+    // Optimistically add the stock to local state (may be a new stock not yet in data.stocks)
+    data.upsertStockLocally(stock);
+    // Create the watchlist-stock junction and update watchlistStocks state
+    await data.addStockToWatchlist(watchlistId, stock.id);
+    // Append to layout order so the stock appears in the correct position
     const currentOrder = layout.stockOrder[String(watchlistId)] ?? [];
-    const next: LayoutData = {
+    saveLayout({
       ...layout,
       stockOrder: { ...layout.stockOrder, [String(watchlistId)]: [...currentOrder, stock.id] },
-    };
-    saveLayout(next);
+    });
   };
 
   const handleUpdateDescription = async (description: string) => {
@@ -155,7 +159,6 @@ export function WatchlistPage() {
 
   const collapseItems = orderedWatchlists.map((watchlist) => {
     const stocks = stocksForWatchlist(watchlist);
-    const existingIds = existingStockIdsForWatchlist(watchlist.id);
     const existingTokens = existingTokensForWatchlist(watchlist.id);
 
     return {
@@ -207,10 +210,8 @@ export function WatchlistPage() {
           {/* Search bar to add stocks to this watchlist */}
           <div style={{ marginBottom: 12 }}>
             <InstrumentSearch
-              watchlistId={watchlist.id}
-              existingStockIds={existingIds}
               existingStockTokens={existingTokens}
-              onStockAdded={(stock) => handleStockAdded(watchlist.id, stock)}
+              onStockAdded={(stock) => void handleStockAdded(watchlist.id, stock)}
             />
           </div>
 

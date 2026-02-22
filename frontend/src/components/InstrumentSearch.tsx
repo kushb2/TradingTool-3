@@ -6,13 +6,11 @@ import type { InstrumentSearchResult, Stock } from "../types";
 import { AutoComplete } from "antd";
 
 interface Props {
-  watchlistId: number;
-  existingStockIds: Set<number>;
   existingStockTokens: Set<number>;
   onStockAdded: (stock: Stock) => void;
 }
 
-export function InstrumentSearch({ watchlistId, existingStockIds, existingStockTokens, onStockAdded }: Props) {
+export function InstrumentSearch({ existingStockTokens, onStockAdded }: Props) {
   const { allInstruments, loading, error } = useInstrumentSearch();
   const [selected, setSelected] = useState<InstrumentSearchResult | null>(null);
   const [adding, setAdding] = useState(false);
@@ -36,16 +34,7 @@ export function InstrumentSearch({ watchlistId, existingStockIds, existingStockT
 
   const options = availableInstruments.map((inst) => ({
     value: inst.trading_symbol,
-    label: (
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
-        <strong style={{ fontSize: 13 }}>{inst.trading_symbol}</strong>
-        {inst.company_name && (
-          <span style={{ color: "#999", fontSize: 10, marginLeft: 8, textAlign: "right" }}>
-            {inst.company_name}
-          </span>
-        )}
-      </div>
-    ),
+    label: inst.trading_symbol,
     instrument: inst,
     // For client-side search/filtering (search by symbol, company name, or exchange)
     searchText: `${inst.trading_symbol} ${inst.company_name} ${inst.exchange}`.toLowerCase(),
@@ -71,13 +60,7 @@ export function InstrumentSearch({ watchlistId, existingStockIds, existingStockT
         return getJson<Stock>(`/api/watchlist/stocks/by-symbol/${selected.trading_symbol}`);
       });
 
-      if (!existingStockIds.has(stock.id)) {
-        await postJson("/api/watchlist/items", {
-          watchlist_id: watchlistId,
-          stock_id: stock.id,
-        });
-        onStockAdded(stock);
-      }
+      onStockAdded(stock);
       setSelected(null);
     } finally {
       setAdding(false);
