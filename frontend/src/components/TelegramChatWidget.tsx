@@ -62,7 +62,7 @@ export function TelegramChatWidget() {
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ text }),
       });
-      append("bot", (payload.message as string | undefined) ?? "Sent ✓");
+      append("bot", "Sent ✓");
     } catch (e) {
       append("error", e instanceof Error ? e.message : "Send failed");
     } finally {

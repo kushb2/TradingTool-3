@@ -13,6 +13,8 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import java.time.Duration
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 internal data class TelegramApiCallResult(
     val statusCode: Int,
@@ -95,7 +97,11 @@ class TelegramApiClient @Inject constructor(
 
     private fun parseTelegramResponse(responseText: String): TelegramApiResponse {
         return runCatching {
-            json.decodeFromString<TelegramApiResponse>(responseText)
+            val obj = json.parseToJsonElement(responseText).jsonObject
+            TelegramApiResponse(
+                ok = obj["ok"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: false,
+                description = obj["description"]?.jsonPrimitive?.content,
+            )
         }.getOrElse {
             TelegramApiResponse(
                 ok = false,
