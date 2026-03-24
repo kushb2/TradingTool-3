@@ -1,17 +1,15 @@
-import { ApartmentOutlined, BarChartOutlined, BookOutlined, UnorderedListOutlined } from "@ant-design/icons";
+import { ApartmentOutlined, BookOutlined, UnorderedListOutlined } from "@ant-design/icons";
 import { ConfigProvider, Layout, Menu, theme } from "antd";
 import type { MenuProps } from "antd";
 import { useState } from "react";
 import { GraphPage } from "./pages/GraphPage";
-import { ManagementPage } from "./pages/ManagementPage";
 import { TradePage } from "./pages/TradePage";
 import { WatchlistPage } from "./pages/WatchlistPage";
 
-type PageKey = "watchlist" | "management" | "graph" | "trade";
+type PageKey = "watchlist" | "graph" | "trade";
 
 const menuItems: MenuProps["items"] = [
   { key: "watchlist", label: "Watchlist", icon: <UnorderedListOutlined /> },
-  { key: "management", label: "Management", icon: <BarChartOutlined /> },
   { key: "graph", label: "Graph", icon: <ApartmentOutlined /> },
   { key: "trade", label: "Trade Journal", icon: <BookOutlined /> },
 ];
@@ -57,7 +55,6 @@ export default function App() {
 
         <Layout.Content>
           {page === "watchlist" && <WatchlistPage />}
-          {page === "management" && <ManagementPage />}
           {page === "graph" && <GraphPage />}
           {page === "trade" && <TradePage />}
         </Layout.Content>
