@@ -1,6 +1,7 @@
 package com.tradingtool.core.kite
 
-import com.tradingtool.core.kite.KiteConfig
+import com.tradingtool.core.http.HttpError
+import com.tradingtool.core.http.Result
 import com.zerodhatech.kiteconnect.KiteConnect
 import com.zerodhatech.models.User
 
@@ -16,6 +17,9 @@ import com.zerodhatech.models.User
  * Token lifecycle: Kite access tokens expire daily at 6 AM IST.
  * The cron-job module is responsible for refreshing the token; this class
  * just applies the new token via [applyAccessToken].
+ *
+ * Design: Wraps the Kite SDK (which makes its own HTTP calls) with structured
+ * error handling via Result<T>. Keeps SDK integration intact for stability.
  */
 class KiteConnectClient(private val config: KiteConfig) {
 
@@ -40,12 +44,20 @@ class KiteConnectClient(private val config: KiteConfig) {
     /**
      * Exchange a [requestToken] (received via Kite redirect) for an access token.
      * Configures this client immediately on success.
+     * Returns Result for structured error handling.
      */
-    fun generateSession(requestToken: String): User {
+    fun generateSession(requestToken: String): Result<User> = runCatching {
         val user: User = kite.generateSession(requestToken, config.apiSecret)
         applyAccessToken(user.accessToken)
-        return user
-    }
+        user
+    }.fold(
+        onSuccess = { Result.Success(it) },
+        onFailure = { e ->
+            Result.Failure(
+                HttpError.UnknownError(e, "Failed to generate Kite session: ${e.message}")
+            )
+        }
+    )
 
     /** Apply a new access token — called by the cron-job after daily refresh. */
     fun applyAccessToken(accessToken: String) {

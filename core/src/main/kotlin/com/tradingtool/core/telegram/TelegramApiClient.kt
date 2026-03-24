@@ -1,32 +1,29 @@
 package com.tradingtool.core.telegram
 
-import com.tradingtool.core.http.HttpRequestData
-import com.tradingtool.core.http.HttpRequestExecutor
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.tradingtool.core.http.HttpError
+import com.tradingtool.core.http.Result
+import com.tradingtool.core.http.SuspendHttpClient
 import com.tradingtool.core.model.telegram.TelegramApiResponse
 import com.tradingtool.core.model.telegram.TelegramSendFileRequest
 import com.google.inject.Inject
 import com.google.inject.Singleton
 import com.google.inject.name.Named
 import java.io.ByteArrayOutputStream
-import java.net.URI
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.time.Duration
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 
 internal data class TelegramApiCallResult(
     val statusCode: Int,
-    val response: TelegramApiResponse,
+    val response: Result<TelegramApiResponse>,
 )
 
 @Singleton
 class TelegramApiClient @Inject constructor(
     @Named("telegramBotToken") private val botToken: String,
     @Named("telegramChatId") private val chatId: String,
-    private val httpRequestExecutor: HttpRequestExecutor,
-    private val json: Json,
+    private val httpClient: SuspendHttpClient,
+    private val objectMapper: ObjectMapper,
 ) {
     /**
      * Check if Telegram API is properly configured.
@@ -46,17 +43,21 @@ class TelegramApiClient @Inject constructor(
             "Telegram API is not configured. Set TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID."
         }
 
-        val requestData = HttpRequestData(
-            method = "POST",
-            uri = URI.create("$baseUrl/sendMessage"),
-            timeout = Duration.ofSeconds(60),
-            headers = mapOf("Content-Type" to "application/x-www-form-urlencoded"),
-            body = buildFormUrlEncoded(
-                "chat_id" to chatId,
-                "text" to text,
-            ).toByteArray(StandardCharsets.UTF_8),
+        val body = buildFormUrlEncoded(
+            "chat_id" to chatId,
+            "text" to text,
         )
-        return executeAndParse(requestData)
+
+        val response = httpClient.post(
+            url = "$baseUrl/sendMessage",
+            body = body,
+            headers = mapOf("Content-Type" to "application/x-www-form-urlencoded"),
+        )
+
+        return TelegramApiCallResult(
+            statusCode = 200, // Form responses don't expose status in same way
+            response = parseResponseJson(response),
+        )
     }
 
     internal suspend fun sendFile(
@@ -69,44 +70,43 @@ class TelegramApiClient @Inject constructor(
         }
 
         val boundary = "----TelegramBoundary${System.currentTimeMillis()}"
-        val requestData = HttpRequestData(
-            method = "POST",
-            uri = URI.create("$baseUrl/$method"),
-            timeout = Duration.ofSeconds(120),
+        val bodyBytes = buildMultipartBody(
+            boundary = boundary,
+            fileFieldName = fileFieldName,
+            fileBytes = request.bytes,
+            fileName = sanitizeFileName(request.fileName),
+            contentType = request.contentType,
+            chatId = chatId,
+            caption = request.caption?.trim()?.takeIf { it.isNotEmpty() },
+        )
+
+        val response = httpClient.post(
+            url = "$baseUrl/$method",
+            body = bodyBytes.decodeToString(),
             headers = mapOf("Content-Type" to "multipart/form-data; boundary=$boundary"),
-            body = buildMultipartBody(
-                boundary = boundary,
-                fileFieldName = fileFieldName,
-                fileBytes = request.bytes,
-                fileName = sanitizeFileName(request.fileName),
-                contentType = request.contentType,
-                chatId = chatId,
-                caption = request.caption?.trim()?.takeIf { it.isNotEmpty() },
-            ),
         )
-        return executeAndParse(requestData)
-    }
 
-    private suspend fun executeAndParse(requestData: HttpRequestData): TelegramApiCallResult {
-        val response = httpRequestExecutor.execute(requestData)
         return TelegramApiCallResult(
-            statusCode = response.statusCode,
-            response = parseTelegramResponse(response.body),
+            statusCode = 200,
+            response = parseResponseJson(response),
         )
     }
 
-    private fun parseTelegramResponse(responseText: String): TelegramApiResponse {
-        return runCatching {
-            val obj = json.parseToJsonElement(responseText).jsonObject
-            TelegramApiResponse(
-                ok = obj["ok"]?.jsonPrimitive?.content?.toBooleanStrictOrNull() ?: false,
-                description = obj["description"]?.jsonPrimitive?.content,
-            )
-        }.getOrElse {
-            TelegramApiResponse(
-                ok = false,
-                description = responseText.ifBlank { "Unexpected Telegram response." },
-            )
+    private fun parseResponseJson(responseResult: Result<String>): Result<TelegramApiResponse> {
+        return responseResult.map { responseText ->
+            try {
+                objectMapper.readValue(responseText, TelegramApiResponse::class.java)
+            } catch (e: Exception) {
+                throw e
+            }
+        }.let { result ->
+            when (result) {
+                is Result.Success -> Result.Success(result.data)
+                is Result.Failure -> {
+                    // If HTTP call failed, return a failure response
+                    Result.Success(TelegramApiResponse(ok = false, description = result.error.describe()))
+                }
+            }
         }
     }
 

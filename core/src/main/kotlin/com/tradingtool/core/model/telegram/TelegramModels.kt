@@ -1,8 +1,7 @@
 package com.tradingtool.core.model.telegram
 
-import kotlinx.serialization.Serializable
+import com.fasterxml.jackson.annotation.JsonProperty
 
-@Serializable
 data class TelegramSendTextRequest(
     val text: String,
 )
@@ -14,7 +13,6 @@ data class TelegramSendFileRequest(
     val caption: String?,
 )
 
-@Serializable
 data class TelegramSendResponse(
     val ok: Boolean,
     val message: String,
@@ -33,8 +31,9 @@ data class TelegramSendResult(
     val response: TelegramSendResponse,
 )
 
-@Serializable
 internal data class TelegramApiResponse(
+    @JsonProperty("ok")
     val ok: Boolean,
+    @JsonProperty("description")
     val description: String? = null,
 )

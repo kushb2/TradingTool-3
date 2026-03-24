@@ -8,6 +8,7 @@ import com.tradingtool.config.AppConfig
 import com.tradingtool.core.database.JdbiHandler
 import com.tradingtool.core.database.KiteTokenJdbiHandler
 import com.tradingtool.core.database.StockJdbiHandler
+import com.tradingtool.core.http.CoreHttpModule
 import com.tradingtool.core.http.HttpRequestExecutor
 import com.tradingtool.core.http.JdkHttpRequestExecutor
 import com.tradingtool.core.kite.InstrumentCache
@@ -36,6 +37,8 @@ class ServiceModule(
     private val appConfig: AppConfig,
 ) : AbstractModule() {
     override fun configure() {
+        install(CoreHttpModule())
+
         bind(AppConfig::class.java).toInstance(appConfig)
         bind(StockService::class.java).`in`(Singleton::class.java)
         bind(TradeService::class.java).`in`(Singleton::class.java)
@@ -87,13 +90,13 @@ class ServiceModule(
     fun provideTelegramApiClient(
         @Named("telegramBotToken") botToken: String,
         @Named("telegramChatId") chatId: String,
-        httpRequestExecutor: HttpRequestExecutor,
-        json: Json,
+        httpClient: com.tradingtool.core.http.SuspendHttpClient,
+        objectMapper: com.fasterxml.jackson.databind.ObjectMapper,
     ): TelegramApiClient = TelegramApiClient(
         botToken = botToken,
         chatId = chatId,
-        httpRequestExecutor = httpRequestExecutor,
-        json = json,
+        httpClient = httpClient,
+        objectMapper = objectMapper,
     )
 
     @Provides

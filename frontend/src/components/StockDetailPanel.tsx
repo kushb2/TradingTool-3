@@ -72,10 +72,15 @@ export function StockDetailPanel({
   const handleAddTag = () => {
     if (!newTagName.trim()) return;
     const newTag: StockTag = { name: newTagName.trim(), color: newTagColor };
+    console.log("✨ Adding tag:", newTag, "Current tagsDraft:", tagsDraft);
     if (!tagsDraft.some((t) => t.name === newTag.name)) {
-      setTagsDraft([...tagsDraft, newTag]);
+      const updated = [...tagsDraft, newTag];
+      setTagsDraft(updated);
+      console.log("✅ Tag added. New tagsDraft:", updated);
       setNewTagName("");
       setNewTagColor("blue");
+    } else {
+      console.log("⚠️ Tag already exists");
     }
   };
 
@@ -87,6 +92,7 @@ export function StockDetailPanel({
     if (!selectedInstrument) return;
     setSaving(true);
     try {
+      console.log("🔍 Before creating - tagsDraft state:", tagsDraft, "length:", tagsDraft.length);
       const payload = {
         symbol: selectedInstrument.trading_symbol,
         instrument_token: selectedInstrument.instrument_token,
@@ -97,6 +103,7 @@ export function StockDetailPanel({
         tags: tagsDraft.length > 0 ? tagsDraft : undefined,
       };
       console.log("📤 Sending POST payload:", JSON.stringify(payload, null, 2));
+      console.log("📤 Payload tags field:", payload.tags);
       await onCreate(payload);
     } catch (e) {
       messageApi.error(e instanceof Error ? e.message : "Failed to create stock");
@@ -109,12 +116,14 @@ export function StockDetailPanel({
     if (!stock) return;
     setSaving(true);
     try {
+      console.log("🔍 Before saving - tagsDraft state:", tagsDraft, "length:", tagsDraft.length);
       const payload = {
         priority: priority > 0 ? priority : undefined,
         notes: notesDraft.trim().length > 0 ? notesDraft : undefined,
         tags: tagsDraft.length > 0 ? tagsDraft : undefined,
       };
       console.log("📤 Sending PATCH payload:", JSON.stringify(payload, null, 2));
+      console.log("📤 Payload tags field:", payload.tags);
       await onUpdate(payload);
     } catch (e) {
       messageApi.error(e instanceof Error ? e.message : "Failed to update stock");
@@ -232,27 +241,38 @@ export function StockDetailPanel({
         </div>
 
         {/* Tags */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 4, minWidth: 180 }}>
-          <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 160 }}>
+          <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 500 }}>
             Tags
           </Typography.Text>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, flex: 1, overflow: "auto" }}>
-            {tagsDraft.map((tag) => (
-              <Tag
-                key={tag.name}
-                color={tag.color}
-                style={{ margin: 0, fontSize: 11 }}
-                closable={mode !== "view"}
-                onClose={() => handleRemoveTag(tag.name)}
-              >
-                {tag.name}
-              </Tag>
-            ))}
-          </div>
+
+          {/* Tags display — compact with wrapping */}
+          {tagsDraft.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 3, paddingBottom: 2 }}>
+              {tagsDraft.map((tag) => (
+                <Tag
+                  key={tag.name}
+                  color={tag.color}
+                  style={{
+                    margin: 0,
+                    padding: "2px 8px",
+                    fontSize: 10,
+                    lineHeight: "1.2",
+                    borderRadius: 3,
+                    fontWeight: 500,
+                  }}
+                  closable={mode !== "view"}
+                  onClose={() => handleRemoveTag(tag.name)}
+                >
+                  {tag.name}
+                </Tag>
+              ))}
+            </div>
+          )}
 
           {/* Tag input (only in create/edit) */}
           {mode !== "view" && (
-            <div style={{ display: "flex", gap: 4 }}>
+            <Space.Compact style={{ width: "100%" }}>
               <Input
                 size="small"
                 placeholder="New tag"
@@ -266,12 +286,17 @@ export function StockDetailPanel({
                 onChange={setNewTagColor}
                 options={TAG_COLORS.map((c) => ({ label: c, value: c }))}
                 size="small"
-                style={{ width: 80, fontSize: 11 }}
+                style={{ width: 65, fontSize: 11 }}
               />
-              <Button size="small" onClick={handleAddTag}>
-                +
+              <Button
+                type="primary"
+                size="small"
+                onClick={handleAddTag}
+                style={{ fontSize: 11, padding: "0 8px" }}
+              >
+                Add
               </Button>
-            </div>
+            </Space.Compact>
           )}
         </div>
       </div>

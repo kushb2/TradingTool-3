@@ -59,27 +59,31 @@ class KiteResource @Inject constructor(
                 .build()
         }
 
-        try {
-            val user = kiteClient.generateSession(requestToken)
-            tokenDb.write { dao -> dao.saveToken(user.accessToken) }
-            telegramSender.sendText(
-                TelegramSendTextRequest("Kite login successful. Token refreshed for user: ${user.userId}")
-            )
-            // Refresh instrument cache on background thread — non-blocking
-            Thread {
-                try {
-                    val instruments = kiteClient.client().getInstruments("NSE")
-                    instrumentCache.refresh(instruments)
-                    println("[InstrumentCache] Refreshed ${instrumentCache.size()} NSE instruments after login")
-                } catch (e: Exception) {
-                    println("[InstrumentCache] Cache refresh after login failed: ${e.message}")
-                }
-            }.also { it.isDaemon = true }.start()
-            Response.ok(mapOf("status" to "authenticated", "userId" to user.userId)).build()
-        } catch (e: Exception) {
-            Response.status(Response.Status.INTERNAL_SERVER_ERROR)
-                .entity(mapOf("error" to (e.message ?: "Token exchange failed")))
-                .build()
+        val sessionResult = kiteClient.generateSession(requestToken)
+        when (sessionResult) {
+            is com.tradingtool.core.http.Result.Success -> {
+                val user = sessionResult.data
+                tokenDb.write { dao -> dao.saveToken(user.accessToken) }
+                telegramSender.sendText(
+                    TelegramSendTextRequest("Kite login successful. Token refreshed for user: ${user.userId}")
+                )
+                // Refresh instrument cache on background thread — non-blocking
+                Thread {
+                    try {
+                        val instruments = kiteClient.client().getInstruments("NSE")
+                        instrumentCache.refresh(instruments)
+                        println("[InstrumentCache] Refreshed ${instrumentCache.size()} NSE instruments after login")
+                    } catch (e: Exception) {
+                        println("[InstrumentCache] Cache refresh after login failed: ${e.message}")
+                    }
+                }.also { it.isDaemon = true }.start()
+                Response.ok(mapOf("status" to "authenticated", "userId" to user.userId)).build()
+            }
+            is com.tradingtool.core.http.Result.Failure -> {
+                Response.status(Response.Status.INTERNAL_SERVER_ERROR)
+                    .entity(mapOf("error" to sessionResult.error.describe()))
+                    .build()
+            }
         }
     }.asCompletableFuture()
 }

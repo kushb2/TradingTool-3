@@ -41,15 +41,21 @@ class TelegramSender(
     }.getOrElse { failedResult(it.message ?: "Failed to send file to Telegram.") }
 
     private fun toSendResult(apiResult: TelegramApiCallResult, successMessage: String): TelegramSendResult {
-        if (apiResult.statusCode !in 200..299 || !apiResult.response.ok) {
-            val description = apiResult.response.description
-                ?: "Telegram API request failed with status ${apiResult.statusCode}."
-            return failedResult(description)
+        return when (val response = apiResult.response) {
+            is com.tradingtool.core.http.Result.Success -> {
+                if (!response.data.ok) {
+                    val description = response.data.description ?: "Telegram API request failed."
+                    return failedResult(description)
+                }
+                TelegramSendResult(
+                    status = TelegramSendStatus.SUCCESS,
+                    response = TelegramSendResponse(ok = true, message = successMessage, telegramDescription = response.data.description),
+                )
+            }
+            is com.tradingtool.core.http.Result.Failure -> {
+                failedResult(response.error.describe())
+            }
         }
-        return TelegramSendResult(
-            status = TelegramSendStatus.SUCCESS,
-            response = TelegramSendResponse(ok = true, message = successMessage, telegramDescription = apiResult.response.description),
-        )
     }
 
     private enum class FileType { IMAGE, EXCEL }

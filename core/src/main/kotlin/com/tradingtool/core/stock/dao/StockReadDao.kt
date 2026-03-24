@@ -57,10 +57,16 @@ private val tagListType = object : TypeReference<List<StockTag>>() {}
 
 class StockMapper : RowMapper<Stock> {
     override fun map(rs: ResultSet, ctx: StatementContext): Stock {
-        val tagsJson = rs.getString(StockColumns.TAGS) ?: "[]"
+        // Handle JSONB retrieval — might be String, PGobject, or other PostgreSQL types
+        val tagsJson = extractJsonString(rs, StockColumns.TAGS)
         val tags: List<StockTag> = try {
-            jacksonMapper.readValue(tagsJson, tagListType)
-        } catch (_: Exception) {
+            if (tagsJson.isBlank() || tagsJson == "null") {
+                emptyList()
+            } else {
+                jacksonMapper.readValue(tagsJson, tagListType)
+            }
+        } catch (e: Exception) {
+            println("⚠️ Failed to deserialize tags from JSON: $tagsJson — Error: ${e.message}")
             emptyList()
         }
         return Stock(
@@ -75,6 +81,25 @@ class StockMapper : RowMapper<Stock> {
             createdAt = toUtcString(rs.getObject(StockColumns.CREATED_AT, OffsetDateTime::class.java)),
             updatedAt = toUtcString(rs.getObject(StockColumns.UPDATED_AT, OffsetDateTime::class.java)),
         )
+    }
+
+    private fun extractJsonString(rs: ResultSet, columnName: String): String {
+        return try {
+            // First try as String (most common)
+            rs.getString(columnName)?.takeIf { it.isNotEmpty() }
+                ?: "[]"
+        } catch (_: Exception) {
+            // If getString fails, try getObject and convert to string
+            try {
+                when (val obj = rs.getObject(columnName)) {
+                    null -> "[]"
+                    is String -> obj.ifEmpty { "[]" }
+                    else -> obj.toString()
+                }
+            } catch (_: Exception) {
+                "[]"
+            }
+        }
     }
 
     private fun toUtcString(value: OffsetDateTime?): String =
