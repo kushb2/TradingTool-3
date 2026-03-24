@@ -8,7 +8,10 @@ import com.tradingtool.core.database.StockJdbiHandler
 import com.tradingtool.core.kite.KiteConnectClient
 import com.tradingtool.core.model.stock.Stock
 import com.tradingtool.core.model.watchlist.ComputedIndicators
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
@@ -121,6 +124,8 @@ class IndicatorService(
                     results[stock.instrumentToken] = indicators
                     stockHandler.write { it.setNeedsRefresh(stock.instrumentToken, false) }
                 }
+            } catch (e: CancellationException) {
+                throw e  // never swallow coroutine cancellation
             } catch (e: Exception) {
                 log.warning("Failed to sync ${stock.symbol}: ${e.message}")
             }
@@ -137,8 +142,12 @@ class IndicatorService(
         log.info("Fetching 1yr history for ${stock.symbol} (token=${stock.instrumentToken})")
 
         val (fromDate, toDate) = dateRange
-        val history = kiteClient.client()
-            .getHistoricalData(fromDate, toDate, stock.instrumentToken.toString(), "day", false, false)
+
+        // Kite SDK uses a blocking HTTP client — dispatch on IO to avoid pinning the coroutine thread.
+        val history = withContext(Dispatchers.IO) {
+            kiteClient.client()
+                .getHistoricalData(fromDate, toDate, stock.instrumentToken.toString(), "day", false, false)
+        }
 
         // Cache raw OHLCV in Redis — 48h TTL bridges Fri close → Mon open.
         redis.set(config.ohlcvKey(stock.instrumentToken), mapper.writeValueAsString(history.historicalData), config.ohlcvTtlSeconds)

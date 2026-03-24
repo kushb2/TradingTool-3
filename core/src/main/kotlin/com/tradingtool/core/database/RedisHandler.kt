@@ -1,5 +1,7 @@
 package com.tradingtool.core.database
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
@@ -23,14 +25,15 @@ class RedisHandler(redisUrl: String) : Closeable {
 
     fun <T> withJedis(block: (Jedis) -> T): T = pool.resource.use(block)
 
-    fun set(key: String, value: String, ttlSeconds: Long) {
-        withJedis { it.setex(key, ttlSeconds, value) }
+    suspend fun set(key: String, value: String, ttlSeconds: Long) {
+        withContext(Dispatchers.IO) { withJedis { it.setex(key, ttlSeconds, value) } }
     }
 
-    fun get(key: String): String? = withJedis { it.get(key) }
+    suspend fun get(key: String): String? =
+        withContext(Dispatchers.IO) { withJedis { it.get(key) } }
 
-    fun delete(key: String) {
-        withJedis { it.del(key) }
+    suspend fun delete(key: String) {
+        withContext(Dispatchers.IO) { withJedis { it.del(key) } }
     }
 
     override fun close() {

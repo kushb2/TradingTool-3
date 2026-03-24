@@ -40,7 +40,6 @@ fun main() {
     val stockHandler = JdbiHandler(dbConfig, StockReadDao::class.java, StockWriteDao::class.java)
     val stockIndicatorsHandler = JdbiHandler(dbConfig, StockIndicatorsReadDao::class.java, StockIndicatorsWriteDao::class.java)
 
-    val kiteClient = buildAuthenticatedKiteClient(kiteTokenHandler)
     val indicatorService = IndicatorService(
         stockIndicatorsHandler = stockIndicatorsHandler,
         stockHandler = stockHandler,
@@ -49,6 +48,7 @@ fun main() {
     )
 
     runBlocking {
+        val kiteClient = buildAuthenticatedKiteClient(kiteTokenHandler)
         indicatorService.refreshAll(kiteClient, onlyNeedsRefresh = false)
     }
 
@@ -63,7 +63,7 @@ fun main() {
  * Kite login link sent by [KiteReminderJob]. Reading from the DB (not from env vars)
  * keeps short-lived daily tokens out of CI secrets and config files.
  */
-private fun buildAuthenticatedKiteClient(
+private suspend fun buildAuthenticatedKiteClient(
     kiteTokenHandler: JdbiHandler<KiteTokenReadDao, KiteTokenWriteDao>
 ): KiteConnectClient {
     val kiteConfig = KiteConfig(
@@ -72,9 +72,8 @@ private fun buildAuthenticatedKiteClient(
     )
     val kiteClient = KiteConnectClient(kiteConfig)
 
-    val accessToken = runBlocking {
-        kiteTokenHandler.read { it.getLatestToken() }
-    } ?: error("No Kite access token found in kite_tokens table. Complete the Kite login flow first.")
+    val accessToken = kiteTokenHandler.read { it.getLatestToken() }
+        ?: error("No Kite access token found in kite_tokens table. Complete the Kite login flow first.")
 
     kiteClient.applyAccessToken(accessToken)
     println("Kite client authenticated (token from DB).")
