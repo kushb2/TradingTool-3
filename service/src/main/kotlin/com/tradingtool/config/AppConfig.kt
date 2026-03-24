@@ -177,12 +177,6 @@ fun loadAppConfig(resourceName: String = defaultConfigFileName()): AppConfig {
             envVars = listOf("KITE_API_SECRET"),
             defaultValue = "",
         ),
-        accessToken = getString(
-            fileValues = fileValues,
-            yamlKey = "kite.accessToken",
-            envVars = listOf("KITE_ACCESS_TOKEN"),
-            defaultValue = "",
-        ),
     )
 
     return AppConfig(

@@ -125,12 +125,13 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         // Note: ResourceScope is injected as a singleton into resources.
         // Coroutines will be cleaned up automatically when the JVM shuts down.
 
-        // Apply latest persisted Kite token from DB so restarts use the freshest token.
+        // Apply the latest persisted Kite token from DB.
+        // This is the only source of truth for Kite auth in all environments.
         val tokenDb = injector.getInstance(
             Key.get(object : TypeLiteral<JdbiHandler<KiteTokenReadDao, KiteTokenWriteDao>>() {})
         )
         val kiteClient = injector.getInstance(com.tradingtool.core.kite.KiteConnectClient::class.java)
-        applyLatestKiteTokenFromDb(tokenDb, kiteClient)
+        requireLatestKiteTokenFromDb(tokenDb, kiteClient)
 
         // Fail fast if Kite is not authenticated at startup.
         // Services should only run when dependencies (like Kite auth) are ready.
@@ -175,7 +176,7 @@ class DropwizardApplication : Application<DropwizardConfig>() {
     }
 }
 
-private fun applyLatestKiteTokenFromDb(
+private fun requireLatestKiteTokenFromDb(
     tokenDb: JdbiHandler<KiteTokenReadDao, KiteTokenWriteDao>,
     kiteClient: com.tradingtool.core.kite.KiteConnectClient,
 ) {
@@ -188,10 +189,14 @@ private fun applyLatestKiteTokenFromDb(
             kiteClient.applyAccessToken(latestToken)
             println("[KiteToken] Applied latest token from kite_tokens table at startup.")
         } else {
-            println("[KiteToken] No token found in kite_tokens table. Using configured token if present.")
+            throw IllegalStateException(
+                "Kite authentication required to start. No token found in kite_tokens table."
+            )
         }
     } catch (error: Exception) {
-        println("[KiteToken] Failed to load token from DB at startup: ${error.message}")
-        println("[KiteToken] Falling back to configured token.")
+        throw IllegalStateException(
+            "Kite authentication required to start. Failed to load token from kite_tokens table.",
+            error,
+        )
     }
 }

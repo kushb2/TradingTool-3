@@ -66,7 +66,6 @@ class DropwizardConfig : Configuration() {
             kite = KiteConfig(
                 apiKey = kite.apiKey ?: "",
                 apiSecret = kite.apiSecret ?: "",
-                accessToken = kite.accessToken ?: "",
             ),
         )
     }
@@ -142,7 +141,4 @@ class DropwizardKiteConfig {
 
     @JsonProperty("apiSecret")
     var apiSecret: String? = ""
-
-    @JsonProperty("accessToken")
-    var accessToken: String? = ""
 }

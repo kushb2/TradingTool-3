@@ -24,9 +24,6 @@ import com.zerodhatech.models.User
 class KiteConnectClient(private val config: KiteConfig) {
 
     private val kite: KiteConnect = KiteConnect(config.apiKey).also { k ->
-        if (config.accessToken.isNotBlank()) {
-            k.setAccessToken(config.accessToken)
-        }
         k.setSessionExpiryHook {
             // Token expired — log and wait for cron-job / manual refresh.
             // Do not crash the service; just mark the client as unauthenticated.
@@ -35,7 +32,7 @@ class KiteConnectClient(private val config: KiteConfig) {
     }
 
     @Volatile
-    var isAuthenticated: Boolean = config.accessToken.isNotBlank()
+    var isAuthenticated: Boolean = false
         private set
 
     /** The URL the user must open in a browser to start the Kite login flow. */

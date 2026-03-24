@@ -1,6 +1,7 @@
 # Kite Access Token — Daily Refresh
 
 Access tokens expire at **6:00 AM IST every day**. Run this once each morning before using the tool.
+The only source of truth is the `kite_tokens` table.
 
 ---
 
@@ -35,18 +36,17 @@ Copy the **full URL** from your browser address bar.
 
 Paste the full URL (or just the `request_token` value) when prompted.
 
-### 5. Let the script patch the config
+### 5. Let the backend persist it
 
-When asked `Patch this into localconfig.yaml automatically? [Y/n]` — press **Enter**.
-
-The script writes the new token into:
+The script calls the backend `/kite/callback` endpoint.
+That endpoint exchanges the request token and saves the new access token into:
 ```
-service/src/main/resources/localconfig.yaml  →  kite.accessToken
+public.kite_tokens
 ```
 
 ### 6. Restart the backend
 
-The backend reads `accessToken` at startup. Restart it to pick up the new token.
+The backend reads the latest row from `kite_tokens` at startup. Restart it to pick up the new token.
 On startup you should see:
 ```
 [InstrumentCache] Loaded XXXX NSE instruments at startup
@@ -54,10 +54,12 @@ On startup you should see:
 
 ---
 
-## Environment variables (Render / production)
+## Environment behavior
 
-On Render, set `KITE_ACCESS_TOKEN` in the environment dashboard instead of using the config file.
-The backend also auto-refreshes the cache after each `/kite/callback` login.
+Local and Render now behave the same way:
+- the backend starts only if a token exists in `kite_tokens`
+- `/kite/callback` stores refreshed tokens in `kite_tokens`
+- config files and env vars are no longer used for `accessToken`
 
 ---
 
