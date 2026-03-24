@@ -1,5 +1,6 @@
 package com.tradingtool.config
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
 import com.tradingtool.core.kite.KiteConfig
 import io.dropwizard.core.Configuration
@@ -135,6 +136,7 @@ class DropwizardDeploymentConfig {
     var githubPagesUrl: String? = "https://kushb2.github.io/TradingTool-3/"
 }
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 class DropwizardKiteConfig {
     @JsonProperty("apiKey")
     var apiKey: String? = ""
