@@ -150,9 +150,9 @@ class IndicatorService(
         }
 
         // Cache raw OHLCV in Redis — 48h TTL bridges Fri close → Mon open.
-        redis.set(config.ohlcvKey(stock.instrumentToken), mapper.writeValueAsString(history.historicalData), config.ohlcvTtlSeconds)
+        redis.set(config.ohlcvKey(stock.instrumentToken), mapper.writeValueAsString(history.dataArrayList), config.ohlcvTtlSeconds)
 
-        val series = buildBarSeries(history.historicalData, stock.symbol)
+        val series = buildBarSeries(history.dataArrayList, stock.symbol)
         if (series.barCount == 0) {
             log.warning("No bars returned for ${stock.symbol} — skipping indicator calculation")
             return null

@@ -5,6 +5,7 @@ import kotlinx.coroutines.withContext
 import redis.clients.jedis.Jedis
 import redis.clients.jedis.JedisPool
 import redis.clients.jedis.JedisPoolConfig
+import java.io.Closeable
 import java.net.URI
 
 /**
