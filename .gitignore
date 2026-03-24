@@ -35,3 +35,15 @@ frontend/package-lock.json
 service/src/main/resources/localconfig.yaml
 localconfig.yaml
 docs/kiteconnectKey
+
+# IDE files
+*.iml
+.idea/
+
+# Output directories
+out/
+target/
+
+# Node package lock (redundant with package.json in many teams, but check if needed)
+package-lock.json
+
