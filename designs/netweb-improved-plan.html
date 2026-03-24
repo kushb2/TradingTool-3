@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Netweb — My Swing Trading Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #f7f6f2;
+  --ink: #1a1a1a;
+  --muted: #888;
+  --border: #e0ddd5;
+  --card: #ffffff;
+  --green: #1a7a4a;
+  --green-light: #edf7f2;
+  --green-border: #b2ddc8;
+  --red: #c0392b;
+  --red-light: #fdf0ee;
+  --red-border: #f0b8b2;
+  --amber: #b36200;
+  --amber-light: #fff8ec;
+  --amber-border: #fcd8a0;
+  --blue: #1a4fa8;
+  --blue-light: #eef3fc;
+  --blue-border: #b0c8f4;
+  --purple: #6b3fa0;
+  --purple-light: #f5f0fa;
+  --purple-border: #d0b8f0;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  padding: 40px 20px 80px;
+}
+
+.wrapper { max-width: 980px; margin: 0 auto; }
+
+/* ── HEADER ── */
+.header {
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 28px;
+  margin-bottom: 40px;
+}
+
+.header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  background: var(--ink);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 2px;
+}
+
+h1 {
+  font-size: clamp(30px, 5vw, 50px);
+  font-weight: 800;
+  line-height: 1.08;
+  letter-spacing: -1.5px;
+  margin-top: 16px;
+}
+
+h1 em { font-style: normal; color: var(--green); }
+
+.header-note {
+  margin-top: 14px;
+  color: var(--muted);
+  font-size: 14px;
+  max-width: 560px;
+}
+
+/* ── SECTION TITLES ── */
+.sec-title {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 18px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+section { margin-bottom: 52px; }
+
+/* ── PLAIN-ENGLISH EXPLAINER ── */
+.explainer {
+  background: var(--ink);
+  color: white;
+  border-radius: 10px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 620px) { .explainer { grid-template-columns: 1fr; } }
+
+.exp-item {}
+.exp-icon { font-size: 26px; margin-bottom: 8px; }
+.exp-title { font-weight: 700; font-size: 14px; color: #e0ddd5; margin-bottom: 6px; }
+.exp-body { font-size: 13px; color: #9ca3af; line-height: 1.6; }
+
+/* ── 7-DAY TIMELINE ── */
+.timeline {
+  display: flex;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.tl-day {
+  flex: 1;
+  padding: 16px 8px;
+  text-align: center;
+  border-right: 1px solid var(--border);
+  font-size: 12px;
+}
+.tl-day:last-child { border-right: none; }
+.tl-num { font-size: 22px; font-weight: 800; display: block; line-height: 1; margin-bottom: 4px; }
+.tl-lbl { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 1px; }
+
+.tl-day.buy { background: var(--green-light); }
+.tl-day.buy .tl-num { color: var(--green); }
+.tl-day.buy .tl-lbl { color: var(--green); }
+.tl-day.hold { background: var(--blue-light); }
+.tl-day.hold .tl-num { color: var(--blue); }
+.tl-day.hold .tl-lbl { color: var(--blue); }
+.tl-day.sell { background: var(--amber-light); }
+.tl-day.sell .tl-num { color: var(--amber); }
+.tl-day.sell .tl-lbl { color: var(--amber); }
+
+/* ── BUY ZONES ── */
+.zones-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 620px) { .zones-layout { grid-template-columns: 1fr; } }
+
+.zone-card {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.zone-header {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+}
+
+.zone-name { font-weight: 700; font-size: 14px; }
+.zone-pct {
+  font-family: 'DM Mono', monospace;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 3px 10px;
+  border-radius: 20px;
+}
+
+.zone-body { padding: 18px 20px; }
+.zone-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13.5px; }
+.zone-row:last-child { margin-bottom: 0; }
+.zone-key { color: var(--muted); }
+.zone-val { font-weight: 600; font-family: 'DM Mono', monospace; font-size: 13px; }
+
+.zone-note {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+
+.z1 .zone-header { background: var(--green-light); border-bottom-color: var(--green-border); }
+.z1 .zone-pct { background: var(--green-border); color: var(--green); }
+.z1 .zone-note { background: var(--green-light); color: var(--green); }
+.z2 .zone-header { background: var(--blue-light); border-bottom-color: var(--blue-border); }
+.z2 .zone-pct { background: var(--blue-border); color: var(--blue); }
+.z2 .zone-note { background: var(--blue-light); color: var(--blue); }
+.z3 .zone-header { background: var(--purple-light); border-bottom-color: var(--purple-border); }
+.z3 .zone-pct { background: var(--purple-border); color: var(--purple); }
+.z3 .zone-note { background: var(--purple-light); color: var(--purple); }
+
+.stop-card {
+  border: 1.5px solid var(--red-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.stop-header { background: var(--red-light); padding: 14px 20px; border-bottom: 1px solid var(--red-border); display: flex; align-items: center; justify-content: space-between; }
+.stop-header .zone-name { color: var(--red); }
+.stop-header .zone-pct { background: var(--red-border); color: var(--red); }
+.stop-body { padding: 18px 20px; font-size: 13.5px; color: var(--muted); line-height: 1.65; }
+.stop-body strong { color: var(--red); font-weight: 700; }
+
+/* ── SELL TARGETS ── */
+.sell-table {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sell-header-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 130px 160px;
+  padding: 12px 22px;
+  background: var(--ink);
+  color: white;
+  font-size: 12px;
+  font-family: 'DM Mono', monospace;
+  letter-spacing: 1px;
+  gap: 12px;
+}
+
+.sell-row {
+  display: grid;
+  grid-template-columns: 80px 1fr 130px 160px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  gap: 12px;
+  transition: background 0.15s;
+}
+
+.sell-row:last-child { border-bottom: none; }
+.sell-row:hover { background: #fafaf8; }
+
+@media (max-width: 640px) {
+  .sell-header-row, .sell-row { grid-template-columns: 60px 1fr 100px; }
+  .sell-col-pct { display: none; }
+}
+
+.sell-badge {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.r1-badge { background: #edf7f2; color: var(--green); border: 1px solid var(--green-border); }
+.r2-badge { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+.r3-badge { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+
+.sell-gain { font-family: 'DM Mono', monospace; font-weight: 600; font-size: 14px; }
+.sell-action { font-size: 13.5px; }
+.sell-why { font-size: 12px; color: var(--muted); }
+
+/* ── SAFETY NET TRACKER ── */
+.snet-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.snet-row {
+  display: grid;
+  grid-template-columns: 200px 1fr 160px;
+  align-items: center;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  gap: 20px;
+}
+
+.snet-row:last-child { border-bottom: none; }
+
+@media (max-width: 600px) {
+  .snet-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
+.snet-trigger {
+  font-weight: 700;
+  font-size: 13.5px;
+}
+
+.snet-action { font-size: 13.5px; color: #444; }
+
+.snet-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  text-align: center;
+  font-weight: 500;
+}
+
+.tag-protect { background: var(--green-light); color: var(--green); border: 1px solid var(--green-border); }
+.tag-lock { background: var(--amber-light); color: var(--amber); border: 1px solid var(--amber-border); }
+.tag-hard { background: var(--red-light); color: var(--red); border: 1px solid var(--red-border); }
+.tag-time { background: var(--blue-light); color: var(--blue); border: 1px solid var(--blue-border); }
+
+/* ── TRADING DIARY ── */
+.diary-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 620px) { .diary-grid { grid-template-columns: 1fr; } }
+
+.diary-card {
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.diary-card-header {
+  padding: 13px 18px;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.diary-icon { font-size: 18px; }
+
+.diary-fields {
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.diary-field {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.field-label {
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  color: var(--muted);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.field-input {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--bg);
+  font-family: 'DM Mono', monospace;
+  width: 100%;
+  outline: none;
+  transition: border 0.15s;
+}
+
+.field-input:focus { border-color: var(--ink); background: white; }
+
+/* checkboxes */
+.diary-checks { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.chk-row { display: flex; align-items: center; gap: 10px; font-size: 13.5px; }
+.chk-row input[type=checkbox] { width: 16px; height: 16px; accent-color: var(--green); cursor: pointer; }
+
+/* ── SUMMARY RULE CARD ── */
+.rules-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rule-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.rule-item:last-child { border-bottom: none; }
+.rule-item:hover { background: #fafaf8; }
+
+.rule-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+  flex-shrink: 0;
+  width: 24px;
+}
+
+.rule-text-wrap {}
+.rule-heading { font-weight: 700; font-size: 14px; margin-bottom: 4px; }
+.rule-desc { font-size: 13.5px; color: var(--muted); line-height: 1.6; }
+
+/* ── QUICK REFERENCE BOX ── */
+.quick-ref {
+  background: var(--ink);
+  color: white;
+  border-radius: 10px;
+  padding: 30px 32px;
+}
+
+.quick-ref h3 { font-size: 16px; font-weight: 700; margin-bottom: 22px; color: #e5e7eb; }
+
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 620px) { .qr-grid { grid-template-columns: 1fr 1fr; } }
+
+.qr-item {}
+.qr-label { font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 2px; color: #6b7280; text-transform: uppercase; margin-bottom: 6px; }
+.qr-val { font-size: 22px; font-weight: 800; }
+
+/* ── DISCLAIMER ── */
+.disclaimer {
+  margin-top: 48px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.7;
+  text-align: center;
+  font-family: 'DM Mono', monospace;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+section { animation: fadeUp 0.5s ease both; }
+section:nth-child(1) { animation-delay: 0s; }
+section:nth-child(2) { animation-delay: 0.07s; }
+section:nth-child(3) { animation-delay: 0.14s; }
+section:nth-child(4) { animation-delay: 0.21s; }
+section:nth-child(5) { animation-delay: 0.28s; }
+section:nth-child(6) { animation-delay: 0.35s; }
+section:nth-child(7) { animation-delay: 0.42s; }
+section:nth-child(8) { animation-delay: 0.49s; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+<!-- ── HEADER ── -->
+<div class="header">
+  <div class="header-top">
+    <span class="tag">NSE · NETWEB · BEGINNER PLAN</span>
+    <span style="font-family:'DM Mono',monospace; font-size:12px; color:var(--muted);">7-Working-Day Cycle</span>
+  </div>
+  <h1>My Netweb<br><em>Swing Trading</em> Plan</h1>
+  <p class="header-note">A simple, step-by-step plan written in plain English — covering exactly where to buy, where to sell, how to protect your money, and what to write down after each trade.</p>
+</div>
+
+<!-- ── WHAT IS THIS STRATEGY? ── -->
+<section>
+  <div class="sec-title">First — what is this strategy in simple words?</div>
+  <div class="explainer">
+    <div class="exp-item">
+      <div class="exp-icon">🔄</div>
+      <div class="exp-title">The Pattern</div>
+      <div class="exp-body">Netweb's price has been going up roughly 7–10% every 7 working days, then coming back down. Like a wave. We want to ride that wave up.</div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-icon">🪜</div>
+      <div class="exp-title">Buy in Steps</div>
+      <div class="exp-body">Instead of putting all your money in at once, you buy in 3 smaller batches as the price dips. This lowers your average cost automatically.</div>
+    </div>
+    <div class="exp-item">
+      <div class="exp-icon">🏦</div>
+      <div class="exp-title">Sell in Steps Too</div>
+      <div class="exp-body">You don't have to sell everything at once either. Sell some early to lock in profit, let the rest ride higher — then sell the rest.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── 7-DAY CYCLE ── -->
+<section>
+  <div class="sec-title">The 7-Day Cycle — What Happens Each Day</div>
+  <div class="timeline">
+    <div class="tl-day buy"><span class="tl-num">D1</span><span class="tl-lbl">BUY</span></div>
+    <div class="tl-day hold"><span class="tl-num">D2</span><span class="tl-lbl">HOLD</span></div>
+    <div class="tl-day hold"><span class="tl-num">D3</span><span class="tl-lbl">HOLD</span></div>
+    <div class="tl-day hold"><span class="tl-num">D4</span><span class="tl-lbl">HOLD</span></div>
+    <div class="tl-day sell"><span class="tl-num">D5</span><span class="tl-lbl">SELL?</span></div>
+    <div class="tl-day sell"><span class="tl-num">D6</span><span class="tl-lbl">SELL?</span></div>
+    <div class="tl-day sell"><span class="tl-num">D7</span><span class="tl-lbl">EXIT ALL</span></div>
+  </div>
+  <p style="font-size:13px; color:var(--muted); margin-top:12px;">💡 <strong>Day 7 is a hard deadline.</strong> If the price hasn't hit your target by then, sell everything and walk away. Don't wait for "just a little more."</p>
+</section>
+
+<!-- ── WHERE TO BUY ── -->
+<section>
+  <div class="sec-title">Step 1 — Where to Buy (3 Buy Zones)</div>
+  <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">Imagine the support level — the price floor where buyers tend to step in — as your starting point (0%). You split your money across 3 price dips below that level. The first dip gets the most money because it's the most likely bounce point.</p>
+
+  <div class="zones-layout">
+
+    <div class="zone-card z1">
+      <div class="zone-header">
+        <span class="zone-name">🟢 Buy Zone 1 — Main Support</span>
+        <span class="zone-pct">0%</span>
+      </div>
+      <div class="zone-body">
+        <div class="zone-row"><span class="zone-key">Price level</span><span class="zone-val">Support level</span></div>
+        <div class="zone-row"><span class="zone-key">How much of your money</span><span class="zone-val">50%</span></div>
+        <div class="zone-row"><span class="zone-key">Example (₹3100 base)</span><span class="zone-val">₹3,100</span></div>
+        <div class="zone-note">✅ This is your <strong>main buy</strong>. Put half your planned money here. Price bounces from this level most of the time in this pattern.</div>
+      </div>
+    </div>
+
+    <div class="zone-card z2">
+      <div class="zone-header">
+        <span class="zone-name">🔵 Buy Zone 2 — First Dip</span>
+        <span class="zone-pct">−1.5%</span>
+      </div>
+      <div class="zone-body">
+        <div class="zone-row"><span class="zone-key">Price level</span><span class="zone-val">Support − 1.5%</span></div>
+        <div class="zone-row"><span class="zone-key">How much of your money</span><span class="zone-val">35%</span></div>
+        <div class="zone-row"><span class="zone-key">Example (₹3100 base)</span><span class="zone-val">₹3,053</span></div>
+        <div class="zone-note">🔵 If price dips a little further, buy more here. Your average cost is now lower, so you need less recovery to profit.</div>
+      </div>
+    </div>
+
+    <div class="zone-card z3">
+      <div class="zone-header">
+        <span class="zone-name">🟣 Buy Zone 3 — Deeper Dip</span>
+        <span class="zone-pct">−3%</span>
+      </div>
+      <div class="zone-body">
+        <div class="zone-row"><span class="zone-key">Price level</span><span class="zone-val">Support − 3%</span></div>
+        <div class="zone-row"><span class="zone-key">How much of your money</span><span class="zone-val">15%</span></div>
+        <div class="zone-row"><span class="zone-key">Example (₹3100 base)</span><span class="zone-val">₹3,007</span></div>
+        <div class="zone-note">🟣 Only a small amount here. If price falls this far, the pattern is getting weaker — so we keep exposure small.</div>
+      </div>
+    </div>
+
+    <div class="stop-card">
+      <div class="stop-header">
+        <span class="zone-name">🔴 Safety Net (Stop-Loss)</span>
+        <span class="zone-pct">−4.5%</span>
+      </div>
+      <div class="stop-body">
+        <strong>Auto-sell everything</strong> if price falls to −4.5% below your support level (e.g. ₹2,960 on a ₹3,100 base). This is your exit door if the pattern completely breaks. <strong>You set this before anything else and never remove it.</strong>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── WHERE TO SELL ── -->
+<section>
+  <div class="sec-title">Step 2 — Where to Sell (3 Resistance Levels = Profit Targets)</div>
+  <p style="font-size:14px; color:var(--muted); margin-bottom:18px;">A "resistance level" is simply a price ceiling where sellers tend to appear and push the price back down. You sell some shares before you reach each ceiling so you're guaranteed to lock in some profit.</p>
+
+  <div class="sell-table">
+    <div class="sell-header-row">
+      <div>Target</div>
+      <div>What to do</div>
+      <div class="sell-col-pct">Price rise</div>
+      <div>Why this makes sense</div>
+    </div>
+
+    <div class="sell-row">
+      <div><span class="sell-badge r1-badge">R1 — TP1</span></div>
+      <div class="sell-action">
+        <strong>Sell 40% of your shares</strong>
+        <div class="sell-why">First profit target — lock in some wins early</div>
+      </div>
+      <div class="sell-gain" style="color:var(--green)">+3%</div>
+      <div class="sell-why">Getting a guaranteed profit early means even if the trade goes wrong after this, you've already won something.</div>
+    </div>
+
+    <div class="sell-row">
+      <div><span class="sell-badge r2-badge">R2 — TP2</span></div>
+      <div class="sell-action">
+        <strong>Sell another 40% of shares</strong>
+        <div class="sell-why">Main profit target — the sweet spot</div>
+      </div>
+      <div class="sell-gain" style="color:var(--amber)">+5%</div>
+      <div class="sell-why">This is the core of the strategy. A conservative target well inside the 7–10% historical move — high chance of being reached.</div>
+    </div>
+
+    <div class="sell-row">
+      <div><span class="sell-badge r3-badge">R3 — TP3</span></div>
+      <div class="sell-action">
+        <strong>Sell the remaining 20%</strong>
+        <div class="sell-why">The "bonus runner" — stretch target</div>
+      </div>
+      <div class="sell-gain" style="color:var(--red)">+7–8%</div>
+      <div class="sell-why">If the pattern is strong, let this small piece ride to the top. If it doesn't reach, your safety net (now moved up) exits it safely.</div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── MOVING SAFETY NET ── -->
+<section>
+  <div class="sec-title">Step 3 — Moving Your Safety Net Up as Price Rises</div>
+  <p style="font-size:14px; color:var(--muted); margin-bottom:18px;">Think of your safety net like a ratchet — it only moves <strong>up</strong>, never down. Once you've made some profit, you move it up to protect those gains. Here's exactly when and where to move it:</p>
+
+  <div class="snet-steps">
+
+    <div class="snet-row" style="background:var(--red-light);">
+      <div class="snet-trigger" style="color:var(--red);">🔴 Before the trade starts</div>
+      <div class="snet-action">Set safety net at <strong>−4.5% below support</strong>. This is your hard floor — the pattern has clearly broken if it falls here.</div>
+      <span class="snet-tag tag-hard">HARD STOP</span>
+    </div>
+
+    <div class="snet-row" style="background:var(--green-light);">
+      <div class="snet-trigger" style="color:var(--green);">🟢 After R1 hit (+3%)</div>
+      <div class="snet-action">Move safety net up to your <strong>average buy price</strong>. You now <em>cannot lose money</em> on the trade — the worst case is breaking even.</div>
+      <span class="snet-tag tag-protect">BREAKEVEN LOCK</span>
+    </div>
+
+    <div class="snet-row" style="background:var(--amber-light);">
+      <div class="snet-trigger" style="color:var(--amber);">🟡 After R2 hit (+5%)</div>
+      <div class="snet-action">Move safety net up to <strong>just above R1 (+2.5%)</strong>. Even if price reverses now, you still walk away with a profit.</div>
+      <span class="snet-tag tag-lock">PROFIT LOCKED</span>
+    </div>
+
+    <div class="snet-row" style="background:var(--blue-light);">
+      <div class="snet-trigger" style="color:var(--blue);">🕰 Day 7 arrives</div>
+      <div class="snet-action">Sell <strong>everything remaining</strong> at market price, no matter what. The cycle window is closed. Walk away clean.</div>
+      <span class="snet-tag tag-time">TIME EXIT</span>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── TRADING DIARY ── -->
+<section>
+  <div class="sec-title">Step 4 — Your Trading Diary (Fill This In After Every Trade)</div>
+  <p style="font-size:14px; color:var(--muted); margin-bottom:18px;">This is the most underrated part of trading. Writing things down helps you spot patterns in your own decisions — what's working, what isn't, and whether this Netweb pattern is still alive.</p>
+
+  <div class="diary-grid">
+
+    <div class="diary-card">
+      <div class="diary-card-header">
+        <span class="diary-icon">📥</span> Entry Details
+      </div>
+      <div class="diary-fields">
+        <div class="diary-field">
+          <span class="field-label">Date of entry (Day 1)</span>
+          <input class="field-input" type="text" placeholder="e.g. 22 Mar 2026">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Zone 1 buy price &amp; shares bought</span>
+          <input class="field-input" type="text" placeholder="e.g. ₹3,100 × 50 shares">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Zone 2 buy price &amp; shares (if triggered)</span>
+          <input class="field-input" type="text" placeholder="e.g. ₹3,053 × 35 shares">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Zone 3 buy price &amp; shares (if triggered)</span>
+          <input class="field-input" type="text" placeholder="e.g. ₹3,007 × 15 shares">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">My average buy price across all zones</span>
+          <input class="field-input" type="text" placeholder="e.g. ₹3,082">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Total money invested in this trade</span>
+          <input class="field-input" type="text" placeholder="e.g. ₹3,08,200">
+        </div>
+      </div>
+    </div>
+
+    <div class="diary-card">
+      <div class="diary-card-header">
+        <span class="diary-icon">📤</span> Exit Details
+      </div>
+      <div class="diary-fields">
+        <div class="diary-field">
+          <span class="field-label">R1 hit? (+3%) — date &amp; sell price</span>
+          <input class="field-input" type="text" placeholder="e.g. 25 Mar @ ₹3,183">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">R2 hit? (+5%) — date &amp; sell price</span>
+          <input class="field-input" type="text" placeholder="e.g. 26 Mar @ ₹3,236">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">R3 hit? (+7%) — date &amp; sell price</span>
+          <input class="field-input" type="text" placeholder="e.g. 27 Mar @ ₹3,298 (or N/A)">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Did my safety net trigger? At what price?</span>
+          <input class="field-input" type="text" placeholder="e.g. No / Yes @ ₹2,960">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Final profit or loss on this trade (₹)</span>
+          <input class="field-input" type="text" placeholder="e.g. +₹12,400 profit">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Exit day number in the cycle (Day 1–7)</span>
+          <input class="field-input" type="text" placeholder="e.g. Day 5">
+        </div>
+      </div>
+    </div>
+
+    <div class="diary-card">
+      <div class="diary-card-header">
+        <span class="diary-icon">📋</span> Trade Checklist — tick before entering
+      </div>
+      <div class="diary-checks">
+        <label class="chk-row"><input type="checkbox"> I can still see the 7-day cycle pattern on the chart</label>
+        <label class="chk-row"><input type="checkbox"> Support level is clearly marked</label>
+        <label class="chk-row"><input type="checkbox"> Limit buy orders are set at all 3 zones</label>
+        <label class="chk-row"><input type="checkbox"> Safety net (stop-loss) is placed at −4.5%</label>
+        <label class="chk-row"><input type="checkbox"> All 3 sell targets (R1, R2, R3) are set as limit orders</label>
+        <label class="chk-row"><input type="checkbox"> I've risked no more than 1–2% of my total capital</label>
+        <label class="chk-row"><input type="checkbox"> No major news or results expected this week</label>
+        <label class="chk-row"><input type="checkbox"> Day 7 exit reminder is set in my calendar/phone</label>
+      </div>
+    </div>
+
+    <div class="diary-card">
+      <div class="diary-card-header">
+        <span class="diary-icon">🧠</span> Pattern Health — check after each cycle
+      </div>
+      <div class="diary-fields">
+        <div class="diary-field">
+          <span class="field-label">Did the price reach R1 (+3%) this cycle?</span>
+          <input class="field-input" type="text" placeholder="Yes / No">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Did the price reach R2 (+5%) this cycle?</span>
+          <input class="field-input" type="text" placeholder="Yes / No">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Was the swing bigger or smaller than last time?</span>
+          <input class="field-input" type="text" placeholder="Bigger / Smaller / Same">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Is the pattern still intact? Continue or pause?</span>
+          <input class="field-input" type="text" placeholder="Continue / Pause / Stop trading it">
+        </div>
+        <div class="diary-field">
+          <span class="field-label">Any notes on what felt wrong or right</span>
+          <input class="field-input" type="text" placeholder="e.g. Entered too early, good patience on R2...">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── GOLDEN RULES ── -->
+<section>
+  <div class="sec-title">The Golden Rules — Read These Before Every Trade</div>
+  <div class="rules-list">
+    <div class="rule-item">
+      <div class="rule-num">01</div>
+      <div class="rule-text-wrap">
+        <div class="rule-heading">Never buy if the price has already moved up</div>
+        <div class="rule-desc">If the price has already bounced off support and risen by 2–3%, that opportunity is gone. Wait for the next wave. Buying late is the #1 beginner mistake.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">02</div>
+      <div class="rule-text-wrap">
+        <div class="rule-heading">Never remove your safety net (stop-loss)</div>
+        <div class="rule-desc">It can only move up — never down or away. If the market is falling and you think "let me just wait a bit more," that's the exact moment you must trust the stop.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">03</div>
+      <div class="rule-text-wrap">
+        <div class="rule-heading">Day 7 is an absolute deadline — no exceptions</div>
+        <div class="rule-desc">The 7-day window is why this pattern works. If you hold into Day 8, Day 9… you're no longer trading the pattern — you're just guessing.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">04</div>
+      <div class="rule-text-wrap">
+        <div class="rule-heading">If 2 cycles in a row fail to reach R2, stop trading it</div>
+        <div class="rule-desc">This is a temporary pattern. Markets change. If the wave stops forming, don't force it. Step back, observe for 2–3 weeks, and only re-enter when the cycle re-establishes itself.</div>
+      </div>
+    </div>
+    <div class="rule-item">
+      <div class="rule-num">05</div>
+      <div class="rule-text-wrap">
+        <div class="rule-heading">Risk only 1–2% of your total money per trade</div>
+        <div class="rule-desc">Even a great strategy loses sometimes. Keep each bet small enough that a bad trade is a minor setback, not a disaster. Consistency over big swings.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── QUICK REFERENCE ── -->
+<section>
+  <div class="sec-title">At a Glance — Quick Reference</div>
+  <div class="quick-ref">
+    <h3>Everything in one view</h3>
+    <div class="qr-grid">
+      <div class="qr-item">
+        <div class="qr-label">Cycle Length</div>
+        <div class="qr-val" style="color:#4ade80">7 Days</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Buy Zones</div>
+        <div class="qr-val" style="color:#60a5fa">0 / −1.5 / −3%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Sell Targets</div>
+        <div class="qr-val" style="color:#fbbf24">+3 / +5 / +8%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Hard Stop</div>
+        <div class="qr-val" style="color:#f87171">−4.5%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Buy Split</div>
+        <div class="qr-val" style="color:#4ade80">50/35/15%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Sell Split</div>
+        <div class="qr-val" style="color:#fbbf24">40/40/20%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Max Risk/Trade</div>
+        <div class="qr-val" style="color:#f87171">1–2%</div>
+      </div>
+      <div class="qr-item">
+        <div class="qr-label">Stop After</div>
+        <div class="qr-val" style="color:#a78bfa">2 Fails</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="disclaimer">
+  ⚠ This plan is for educational and planning purposes only — it is not financial advice.<br>
+  Past patterns do not guarantee future results. Please consult a SEBI-registered advisor before investing. Capital is at risk.
+</div>
+
+</div>
+</body>
+</html>

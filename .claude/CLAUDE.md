@@ -48,6 +48,30 @@ Before writing or modifying code, read the relevant doc in `docs/`:
 | [`docs/watchlist-schema.md`](../docs/watchlist-schema.md) | DB schema shape, table names, key SQL patterns |
 | [`docs/kite-connect-api.md`](../docs/kite-connect-api.md) | Kite Connect SDK reference: auth, historical data, orders, WebSocket, rate limits, module placement |
 
+## Design Reference
+
+All UI/UX design assets are located in `/designs/` at project root. These are the **source-of-truth visual blueprints** for the frontend.
+
+**Key Design Files:**
+- `alpha10.jsx` — Alpha-10 strategy dashboard component
+- `momentum-screener.jsx` — Stock screening and momentum ranking interface
+- `weekend-investing.jsx` — Batch trade planner for weekend setups
+- `netweb-trading-plan.html` — Complete Netweb swing trade plan (design system reference)
+- `netweb-improved-plan.html` — Enhanced version with refinements
+
+**Read `.claude/design-reference.md` before building frontend components.** It contains:
+- Color palette and typography system
+- Layout patterns (cards, timeline, price level diagrams)
+- Component structure (action cards, rules blocks, checklists)
+- Implementation checklist
+- HTML design files can be opened directly in a browser for visual reference
+
+**Frontend Conventions (Design-Related):**
+- Base color scheme on the designs' palette (green `#00ff9d` for entry, red `#ff3d5a` for stops, amber `#ffb830` for targets, blue `#4fa3ff` for holds)
+- Use Ant Design `Card`, `Layout`, `Grid`, `Table` components to build the layouts shown in HTML references
+- Use `lightweight-charts` for all price action visualizations
+- Keep Ant Design `theme` configuration in a dedicated file for consistency
+
 ## Backend Conventions (Kotlin + Dropwizard 4.x)
 - Use **Dropwizard 4.x** with **Jakarta EE** (`jakarta.ws.rs.*`, not `javax.ws.rs.*`)
 - Use `@Path`, `@GET`, `@POST`, `@Produces`, `@Consumes` from `jakarta.ws.rs`
