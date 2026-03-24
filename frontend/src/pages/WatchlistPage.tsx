@@ -1,155 +1,63 @@
 import {
-  CheckOutlined,
-  CloseOutlined,
   FileTextOutlined,
   MinusOutlined,
-  PlusOutlined,
   StarFilled,
 } from "@ant-design/icons";
-import { Button, Collapse, Input, Spin, Tooltip, Typography, message } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { Button, Spin, Tag, Tooltip, Typography, message } from "antd";
+import { useEffect, useState } from "react";
 import { InstrumentSearch } from "../components/InstrumentSearch";
 import { StockNotesPanel } from "../components/StockNotesPanel";
 import { TelegramChatWidget } from "../components/TelegramChatWidget";
-import { useLayout } from "../hooks/useLayout";
-import { useWatchlistData } from "../hooks/useWatchlistData";
-import type { LayoutData, Stock, Watchlist } from "../types";
+import { useStocks, type UpdateStockInput } from "../hooks/useStocks";
+import type { Stock } from "../types";
 
 const PRIORITY_COLORS = ["", "#bfbfbf", "#52c41a", "#1677ff", "#faad14", "#f5222d"];
 
 export function WatchlistPage() {
-  const data = useWatchlistData();
-  const { layout, saveLayout } = useLayout();
+  const { stocks, allTags, loading, error, filterByTag, createStock, updateStock, deleteStock } =
+    useStocks();
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
   const [notesOpen, setNotesOpen] = useState(false);
-  const [editingWatchlistId, setEditingWatchlistId] = useState<number | null>(null);
-  const [editName, setEditName] = useState("");
-  const [createWlOpen, setCreateWlOpen] = useState(false);
-  const [createWlName, setCreateWlName] = useState("");
-  const [createWlDesc, setCreateWlDesc] = useState("");
   const [messageApi, contextHolder] = message.useMessage();
 
-  // Build stockId → Tags map
-  const stockTagMap = useMemo(() => {
-    const tagById = new Map(data.allTags.map((t) => [t.id, t]));
-    const map = new Map<number, typeof data.allTags>();
-    data.stockTags.forEach((st) => {
-      const tag = tagById.get(st.tag_id);
-      if (!tag) return;
-      const existing = map.get(st.stock_id) ?? [];
-      map.set(st.stock_id, [...existing, tag]);
-    });
-    return map;
-  }, [data.stockTags, data.allTags]);
+  const visibleStocks = filterByTag(selectedTag);
 
-  // Build stockId Map for quick lookup
-  const stockById = useMemo(
-    () => new Map(data.stocks.map((s) => [s.id, s])),
-    [data.stocks],
-  );
+  // Sync selectedStock with latest data (notes/priority/tags may have changed)
+  useEffect(() => {
+    if (!selectedStock) return;
+    const updated = stocks.find((s) => s.id === selectedStock.id);
+    if (updated) setSelectedStock(updated);
+  }, [stocks]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Order watchlists according to saved layout
-  const orderedWatchlists = useMemo(() => {
-    const orderMap = new Map(layout.watchlistOrder.map((id, i) => [id, i]));
-    return [...data.watchlists].sort((a, b) => {
-      const ai = orderMap.get(a.id) ?? 9999;
-      const bi = orderMap.get(b.id) ?? 9999;
-      return ai - bi;
-    });
-  }, [data.watchlists, layout.watchlistOrder]);
-
-  // Close notes when stock is deselected
   useEffect(() => {
     if (!selectedStock) setNotesOpen(false);
   }, [selectedStock]);
 
-  const stocksForWatchlist = (watchlist: Watchlist): Stock[] => {
-    const stockOrder = layout.stockOrder[String(watchlist.id)] ?? [];
-    const orderMap = new Map(stockOrder.map((id, i) => [id, i]));
-    const ids = new Set(
-      data.watchlistStocks
-        .filter((ws) => ws.watchlist_id === watchlist.id)
-        .map((ws) => ws.stock_id),
-    );
-    const stocks = [...ids]
-      .map((id) => stockById.get(id))
-      .filter((s): s is Stock => s !== undefined);
-    return stocks.sort((a, b) => {
-      const ai = orderMap.get(a.id) ?? 9999;
-      const bi = orderMap.get(b.id) ?? 9999;
-      return ai - bi;
-    });
-  };
-
-  const existingStockIdsForWatchlist = (watchlistId: number): Set<number> =>
-    new Set(
-      data.watchlistStocks
-        .filter((ws) => ws.watchlist_id === watchlistId)
-        .map((ws) => ws.stock_id),
-    );
-
-  const existingTokensForWatchlist = (watchlistId: number): Set<number> => {
-    const stockIds = existingStockIdsForWatchlist(watchlistId);
-    return new Set(
-      data.stocks
-        .filter((s) => stockIds.has(s.id))
-        .map((s) => s.instrument_token),
-    );
-  };
-
-  const handleCreateWatchlist = async () => {
-    if (!createWlName.trim()) return;
+  const handleStockAdded = async (stock: Stock) => {
     try {
-      const wl = await data.createWatchlist(createWlName.trim(), createWlDesc.trim() || undefined);
-      saveLayout({ ...layout, watchlistOrder: [...layout.watchlistOrder, wl.id] });
-      setCreateWlOpen(false);
-      setCreateWlName("");
-      setCreateWlDesc("");
+      await createStock({
+        symbol: stock.symbol,
+        instrument_token: stock.instrument_token,
+        company_name: stock.company_name,
+        exchange: stock.exchange,
+      });
     } catch (e) {
-      messageApi.error(e instanceof Error ? e.message : "Failed to create watchlist");
+      messageApi.error(e instanceof Error ? e.message : "Failed to add stock");
     }
   };
 
-  const handleStockAdded = async (watchlistId: number, stock: Stock) => {
-    // Optimistically add the stock to local state (may be a new stock not yet in data.stocks)
-    data.upsertStockLocally(stock);
-    // Create the watchlist-stock junction and update watchlistStocks state
-    await data.addStockToWatchlist(watchlistId, stock.id);
-    // Append to layout order so the stock appears in the correct position
-    const currentOrder = layout.stockOrder[String(watchlistId)] ?? [];
-    saveLayout({
-      ...layout,
-      stockOrder: { ...layout.stockOrder, [String(watchlistId)]: [...currentOrder, stock.id] },
-    });
-  };
-
-  const handleUpdateDescription = async (description: string) => {
+  const handleUpdate = async (payload: UpdateStockInput) => {
     if (!selectedStock) return;
-    await data.updateStock(selectedStock.id, { description });
-    setSelectedStock((prev) => (prev ? { ...prev, description } : prev));
-  };
-
-  const handleUpdatePriority = async (priority: number) => {
-    if (!selectedStock) return;
-    await data.updateStock(selectedStock.id, { priority });
-    setSelectedStock((prev) => (prev ? { ...prev, priority } : prev));
-  };
-
-  const handleRenameWatchlist = async (watchlistId: number) => {
-    if (!editName.trim()) {
-      setEditingWatchlistId(null);
-      return;
-    }
     try {
-      await data.updateWatchlist(watchlistId, { name: editName.trim() });
-      setEditingWatchlistId(null);
-      setEditName("");
+      const updated = await updateStock(selectedStock.id, payload);
+      setSelectedStock(updated);
     } catch (e) {
-      messageApi.error(e instanceof Error ? e.message : "Failed to rename watchlist");
+      messageApi.error(e instanceof Error ? e.message : "Failed to update stock");
     }
   };
 
-  if (data.loading) {
+  if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "calc(100vh - 48px)" }}>
         <Spin size="large" />
@@ -157,142 +65,100 @@ export function WatchlistPage() {
     );
   }
 
-  const collapseItems = orderedWatchlists.map((watchlist) => {
-    const stocks = stocksForWatchlist(watchlist);
-    const existingTokens = existingTokensForWatchlist(watchlist.id);
-
-    return {
-      key: String(watchlist.id),
-      label: (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-          {editingWatchlistId === watchlist.id ? (
-            <Input
-              size="small"
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-              onPressEnter={() => void handleRenameWatchlist(watchlist.id)}
-              onBlur={() => void handleRenameWatchlist(watchlist.id)}
-              autoFocus
-              onClick={(e) => e.stopPropagation()}
-              style={{ width: 150 }}
-              suffix={
-                <span style={{ display: "flex", gap: 4 }}>
-                  <CheckOutlined style={{ color: "#52c41a", cursor: "pointer", fontSize: 12 }} />
-                  <CloseOutlined
-                    style={{ color: "#ff4d4f", cursor: "pointer", fontSize: 12 }}
-                    onClick={() => setEditingWatchlistId(null)}
-                  />
-                </span>
-              }
-            />
-          ) : (
-            <>
-              <Typography.Text
-                strong
-                style={{ fontSize: 13, cursor: "pointer", flex: 1 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setEditingWatchlistId(watchlist.id);
-                  setEditName(watchlist.name);
-                }}
-              >
-                {watchlist.name}
-              </Typography.Text>
-              <Typography.Text type="secondary" style={{ fontSize: 11 }}>
-                ({stocks.length})
-              </Typography.Text>
-            </>
-          )}
-        </div>
-      ),
-      children: (
-        <div>
-          {/* Search bar to add stocks to this watchlist */}
-          <div style={{ marginBottom: 12 }}>
-            <InstrumentSearch
-              existingStockTokens={existingTokens}
-              onStockAdded={(stock) => void handleStockAdded(watchlist.id, stock)}
-            />
-          </div>
-
-          {/* Stock rows */}
-          {stocks.length === 0 ? (
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Search above to add stocks
-            </Typography.Text>
-          ) : (
-            stocks.map((stock) => (
-              <StockRow
-                key={stock.id}
-                stock={stock}
-                tags={stockTagMap.get(stock.id) ?? []}
-                isSelected={selectedStock?.id === stock.id}
-                onSelect={() => {
-                  const next = selectedStock?.id === stock.id ? null : stock;
-                  setSelectedStock(next);
-                  if (next) setNotesOpen(true);
-                }}
-                onRemove={() => void data.removeStockFromWatchlist(watchlist.id, stock.id)}
-              />
-            ))
-          )}
-        </div>
-      ),
-    };
-  });
-
-
   return (
     <>
       {contextHolder}
 
-      {/* ─── Main layout: sidebar + content ─── */}
       <div style={{ display: "flex", height: "calc(100vh - 48px)" }}>
 
-        {/* ── Left sidebar ────────────────────── */}
+        {/* ── Tag filter sidebar ───────────────── */}
         <div
           style={{
-            width: 280,
+            width: 200,
             flexShrink: 0,
             background: "#fff",
             borderRight: "1px solid #e8e8e8",
-            display: "flex",
-            flexDirection: "column",
             overflowY: "auto",
+            padding: "12px 0",
           }}
         >
-          {/* Header + create button */}
-          <div style={{ padding: "12px", borderBottom: "1px solid #f0f0f0" }}>
-            <Button
-              block
-              type="primary"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setCreateWlOpen(true)}
-            >
-              New Watchlist
-            </Button>
+          <div style={{ padding: "0 12px 8px", borderBottom: "1px solid #f0f0f0", marginBottom: 4 }}>
+            <Typography.Text type="secondary" style={{ fontSize: 11, fontWeight: 600 }}>
+              FILTER BY TAG
+            </Typography.Text>
           </div>
 
-          {/* Error message */}
-          {data.error && (
-            <div style={{ padding: "8px 12px" }}>
-              <Typography.Text type="danger" style={{ fontSize: 11 }}>
-                {data.error}
-              </Typography.Text>
-            </div>
-          )}
-
-          {/* Collapse: all watchlists */}
-          <Collapse
-            items={collapseItems}
-            defaultActiveKey={orderedWatchlists.map((w) => String(w.id))}
-            style={{ background: "transparent", border: "none", flex: 1 }}
+          {/* "All Stocks" option */}
+          <SidebarItem
+            label={`All Stocks (${stocks.length})`}
+            active={selectedTag === null}
+            color={undefined}
+            onClick={() => setSelectedTag(null)}
           />
+
+          {allTags.map((tag) => {
+            const count = filterByTag(tag.name).length;
+            return (
+              <SidebarItem
+                key={tag.name}
+                label={`${tag.name} (${count})`}
+                active={selectedTag === tag.name}
+                color={tag.color}
+                onClick={() => setSelectedTag(tag.name)}
+              />
+            );
+          })}
+
+          {allTags.length === 0 && (
+            <Typography.Text type="secondary" style={{ fontSize: 11, padding: "0 12px" }}>
+              No tags yet
+            </Typography.Text>
+          )}
         </div>
 
-        {/* ── Right content area ──────────────── */}
-        <div style={{ flex: 1, background: "#f5f7fa" }} />
+        {/* ── Main content ─────────────────────── */}
+        <div style={{ flex: 1, overflowY: "auto", background: "#f5f7fa", padding: "16px" }}>
+          {error && (
+            <Typography.Text type="danger" style={{ display: "block", marginBottom: 12, fontSize: 12 }}>
+              {error}
+            </Typography.Text>
+          )}
+
+          {/* Add stock search */}
+          <div style={{ marginBottom: 16, maxWidth: 480 }}>
+            <InstrumentSearch
+              existingStockTokens={new Set(stocks.map((s) => s.instrument_token))}
+              onStockAdded={(stock) => void handleStockAdded(stock)}
+            />
+          </div>
+
+          {/* Stock list */}
+          {visibleStocks.length === 0 ? (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {selectedTag ? `No stocks tagged "${selectedTag}".` : "No stocks yet — search above to add one."}
+            </Typography.Text>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxWidth: 640 }}>
+              {visibleStocks.map((stock) => (
+                <StockRow
+                  key={stock.id}
+                  stock={stock}
+                  isSelected={selectedStock?.id === stock.id}
+                  onSelect={() => {
+                    const next = selectedStock?.id === stock.id ? null : stock;
+                    setSelectedStock(next);
+                    if (next) setNotesOpen(true);
+                  }}
+                  onRemove={() => {
+                    void deleteStock(stock.id).catch((e: Error) =>
+                      messageApi.error(e.message),
+                    );
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* ─── Notes FAB ─────────────────────── */}
@@ -317,33 +183,66 @@ export function WatchlistPage() {
       {notesOpen && selectedStock && (
         <StockNotesPanel
           stock={selectedStock}
-          tags={stockTagMap.get(selectedStock.id) ?? []}
           onClose={() => setNotesOpen(false)}
-          onUpdateDescription={handleUpdateDescription}
-          onUpdatePriority={handleUpdatePriority}
+          onUpdate={handleUpdate}
         />
       )}
 
-      {/* ─── Telegram FAB ──────────────────── */}
       <TelegramChatWidget />
-
-      {/* ─── Create watchlist modal ────────── */}
-      {/* (same as before) */}
     </>
   );
 }
 
-// ─── Stock row component ────────────────────────────────────────────────────
+// ─── Sidebar item ───────────────────────────────────────────────────────────
 
-interface StockRowProps {
+function SidebarItem({
+  label,
+  active,
+  color,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  color: string | undefined;
+  onClick: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      style={{
+        padding: "7px 12px",
+        cursor: "pointer",
+        background: active ? "#e6f4ff" : "transparent",
+        borderLeft: active ? "3px solid #1677ff" : "3px solid transparent",
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        fontSize: 12,
+      }}
+    >
+      {color && (
+        <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, flexShrink: 0 }} />
+      )}
+      <Typography.Text style={{ fontSize: 12, color: active ? "#1677ff" : "#333" }}>
+        {label}
+      </Typography.Text>
+    </div>
+  );
+}
+
+// ─── Stock row ──────────────────────────────────────────────────────────────
+
+function StockRow({
+  stock,
+  isSelected,
+  onSelect,
+  onRemove,
+}: {
   stock: Stock;
-  tags: ReturnType<typeof useWatchlistData>["allTags"];
   isSelected: boolean;
   onSelect: () => void;
   onRemove: () => void;
-}
-
-function StockRow({ stock, tags, isSelected, onSelect, onRemove }: StockRowProps) {
+}) {
   const [hovered, setHovered] = useState(false);
 
   return (
@@ -355,44 +254,41 @@ function StockRow({ stock, tags, isSelected, onSelect, onRemove }: StockRowProps
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: "7px 14px 7px 11px",
+        padding: "10px 14px",
         cursor: "pointer",
-        background: isSelected ? "#e6f4ff" : hovered ? "#f5f5f5" : "transparent",
-        borderLeft: isSelected ? "3px solid #1677ff" : "3px solid transparent",
+        background: isSelected ? "#e6f4ff" : "#fff",
+        borderRadius: 8,
+        border: isSelected ? "1px solid #91caff" : "1px solid #f0f0f0",
         transition: "background 0.1s",
       }}
     >
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <Typography.Text
-            strong
-            style={{ fontSize: 13, color: isSelected ? "#1677ff" : "#1f1f1f" }}
-          >
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+          <Typography.Text strong style={{ fontSize: 13, color: isSelected ? "#1677ff" : "#1f1f1f" }}>
             {stock.symbol}
           </Typography.Text>
           <Typography.Text type="secondary" style={{ fontSize: 10 }}>
             {stock.exchange}
           </Typography.Text>
+          {stock.tags.map((tag) => (
+            <Tag key={tag.name} color={tag.color} style={{ margin: 0, fontSize: 10 }}>
+              {tag.name}
+            </Tag>
+          ))}
         </div>
-        {/* Company name visible on hover */}
         {hovered && (
-          <Typography.Text
-            type="secondary"
-            ellipsis
-            style={{ fontSize: 10, display: "block", maxWidth: 180 }}
-          >
+          <Typography.Text type="secondary" style={{ fontSize: 10, display: "block", marginTop: 2 }}>
             {stock.company_name}
           </Typography.Text>
         )}
       </div>
 
-      {/* Right side: priority star (hidden on hover) + remove button */}
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
         {stock.priority != null && stock.priority > 0 && !hovered && (
           <StarFilled style={{ fontSize: 8, color: PRIORITY_COLORS[stock.priority] ?? "#bfbfbf" }} />
         )}
         {hovered && (
-          <Tooltip title="Remove from watchlist">
+          <Tooltip title="Delete stock">
             <Button
               type="text"
               size="small"

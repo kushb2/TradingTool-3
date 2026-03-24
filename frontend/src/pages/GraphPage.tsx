@@ -1,7 +1,7 @@
 import { InfoCircleOutlined } from "@ant-design/icons";
 import { Alert, Typography } from "antd";
 import { useMemo } from "react";
-import { useWatchlistData } from "../hooks/useWatchlistData";
+import { useStocks } from "../hooks/useStocks";
 
 /**
  * Graph view — shows tags as theme nodes and stocks as stock nodes.
@@ -10,19 +10,15 @@ import { useWatchlistData } from "../hooks/useWatchlistData";
  * Currently renders a placeholder until G6 is added as a dependency.
  */
 export function GraphPage() {
-  const data = useWatchlistData();
+  const { stocks, allTags } = useStocks();
 
-  // Build a preview of what the graph would contain
-  const tagNodes = data.allTags;
-  const stockNodes = data.stocks.filter((s) =>
-    data.stockTags.some((st) => st.stockId === s.id),
-  );
-  const edgeCount = data.stockTags.length;
+  const stocksWithTags = stocks.filter((s) => s.tags.length > 0);
+  const edgeCount = stocks.reduce((sum, s) => sum + s.tags.length, 0);
 
   const summary = useMemo(
     () =>
-      `${tagNodes.length} theme nodes · ${stockNodes.length} stock nodes · ${edgeCount} connections`,
-    [tagNodes, stockNodes, edgeCount],
+      `${allTags.length} theme nodes · ${stocksWithTags.length} stock nodes · ${edgeCount} connections`,
+    [allTags, stocksWithTags, edgeCount],
   );
 
   return (
@@ -38,7 +34,7 @@ export function GraphPage() {
         type="info"
         showIcon
         icon={<InfoCircleOutlined />}
-        message="Graph dependency not installed"
+        title="Graph dependency not installed"
         description={
           <div>
             <p style={{ marginBottom: 8 }}>

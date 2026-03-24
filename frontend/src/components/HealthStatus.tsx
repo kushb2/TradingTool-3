@@ -9,7 +9,7 @@ export function HealthStatus() {
       <Alert
         type="info"
         showIcon
-        message="Checking Render backend connection..."
+        title="Checking Render backend connection..."
       />
     );
   }
@@ -19,7 +19,7 @@ export function HealthStatus() {
       <Alert
         type="error"
         showIcon
-        message="Backend check failed"
+        title="Backend check failed"
         description={error}
       />
     );

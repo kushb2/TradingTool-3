@@ -23,7 +23,7 @@ export function TradePage() {
     return (
       <Alert
         type="error"
-        message="Failed to load trades"
+        title="Failed to load trades"
         description={error}
         showIcon
         style={{ margin: "16px" }}

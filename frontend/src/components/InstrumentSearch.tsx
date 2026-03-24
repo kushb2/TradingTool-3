@@ -49,7 +49,7 @@ export function InstrumentSearch({ existingStockTokens, onStockAdded }: Props) {
     setAdding(true);
     try {
       // Upsert stock (create if not exists, or fetch existing)
-      const stock = await postJson<Stock>("/api/watchlist/stocks", {
+      const stock = await postJson<Stock>("/api/stocks", {
         symbol: selected.trading_symbol,
         instrument_token: selected.instrument_token,
         company_name: selected.company_name,
@@ -57,7 +57,7 @@ export function InstrumentSearch({ existingStockTokens, onStockAdded }: Props) {
       }).catch(async () => {
         // Stock already exists — fetch by symbol
         const { getJson } = await import("../utils/api");
-        return getJson<Stock>(`/api/watchlist/stocks/by-symbol/${selected.trading_symbol}`);
+        return getJson<Stock>(`/api/stocks/by-symbol/${selected.trading_symbol}`);
       });
 
       onStockAdded(stock);
