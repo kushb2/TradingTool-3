@@ -35,6 +35,12 @@ class KiteConnectClient(private val config: KiteConfig) {
     var isAuthenticated: Boolean = false
         private set
 
+    @Volatile
+    var accessToken: String = ""
+        private set
+
+    val apiKey: String get() = config.apiKey
+
     /** The URL the user must open in a browser to start the Kite login flow. */
     fun loginUrl(): String = kite.loginURL
 
@@ -57,8 +63,9 @@ class KiteConnectClient(private val config: KiteConfig) {
     )
 
     /** Apply a new access token — called by the cron-job after daily refresh. */
-    fun applyAccessToken(accessToken: String) {
-        kite.setAccessToken(accessToken)
+    fun applyAccessToken(token: String) {
+        kite.setAccessToken(token)
+        accessToken = token
         isAuthenticated = true
     }
 

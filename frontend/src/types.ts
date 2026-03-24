@@ -1,3 +1,17 @@
+// ==================== Live Tick (SSE Stream) ====================
+
+export interface TickSnapshot {
+  instrumentToken: number;
+  ltp: number;
+  volume: number;
+  changePercent: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  updatedAt: number;
+}
+
 // ==================== Stock (Master Record) ====================
 
 export interface StockTag {

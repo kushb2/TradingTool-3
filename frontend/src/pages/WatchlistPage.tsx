@@ -5,12 +5,14 @@ import { InstrumentSearch } from "../components/InstrumentSearch";
 import { StockDetailPanel } from "../components/StockDetailPanel";
 import { TelegramChatWidget } from "../components/TelegramChatWidget";
 import { useStocks, type CreateStockInput } from "../hooks/useStocks";
-import type { InstrumentSearchResult, Stock } from "../types";
+import { useLivePrices } from "../hooks/useLivePrices";
+import type { InstrumentSearchResult, Stock, TickSnapshot } from "../types";
 
 const PRIORITY_COLORS = ["", "#bfbfbf", "#52c41a", "#1677ff", "#faad14", "#f5222d"];
 
 export function WatchlistPage() {
   const { stocks, allTags, loading, error, createStock, updateStock, deleteStock } = useStocks();
+  const { getTick } = useLivePrices();
 
   // Panel state
   const [selectedStock, setSelectedStock] = useState<Stock | null>(null);
@@ -131,6 +133,7 @@ export function WatchlistPage() {
                   <StockSidebarRow
                     key={stock.id}
                     stock={stock}
+                    tick={getTick(stock.instrument_token)}
                     isSelected={selectedStock?.id === stock.id}
                     onSelect={() => {
                       setSelectedStock(stock);
@@ -200,18 +203,34 @@ export function WatchlistPage() {
 
 function StockSidebarRow({
   stock,
+  tick,
   isSelected,
   onSelect,
   onEdit,
   onDelete,
 }: {
   stock: Stock;
+  tick: TickSnapshot | undefined;
   isSelected: boolean;
   onSelect: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
+
+  const ltpColor = tick
+    ? tick.changePercent >= 0
+      ? "#52c41a"
+      : "#f5222d"
+    : "#bfbfbf";
+
+  const ltpFormatted = tick
+    ? `₹${tick.ltp.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : null;
+
+  const changeFormatted = tick
+    ? `${tick.changePercent >= 0 ? "▲" : "▼"}${Math.abs(tick.changePercent).toFixed(2)}%`
+    : null;
 
   return (
     <div
@@ -240,10 +259,24 @@ function StockSidebarRow({
       </div>
 
       <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
-        {!hovered && stock.priority && stock.priority > 0 && (
-          <Typography.Text style={{ fontSize: 10, color: PRIORITY_COLORS[stock.priority] ?? "#bfbfbf" }}>
-            {"★".repeat(stock.priority)}
-          </Typography.Text>
+        {!hovered && (
+          <>
+            {ltpFormatted && (
+              <div style={{ textAlign: "right" }}>
+                <Typography.Text style={{ fontSize: 11, color: ltpColor, fontVariantNumeric: "tabular-nums" }}>
+                  {ltpFormatted}
+                </Typography.Text>
+                <Typography.Text style={{ fontSize: 9, color: ltpColor, marginLeft: 3 }}>
+                  {changeFormatted}
+                </Typography.Text>
+              </div>
+            )}
+            {!ltpFormatted && stock.priority && stock.priority > 0 && (
+              <Typography.Text style={{ fontSize: 10, color: PRIORITY_COLORS[stock.priority] ?? "#bfbfbf" }}>
+                {"★".repeat(stock.priority)}
+              </Typography.Text>
+            )}
+          </>
         )}
 
         {hovered && (

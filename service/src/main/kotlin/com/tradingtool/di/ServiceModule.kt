@@ -31,9 +31,12 @@ import com.tradingtool.core.trade.dao.TradeReadDao
 import com.tradingtool.core.trade.dao.TradeWriteDao
 import com.tradingtool.core.trade.service.TradeService
 import com.tradingtool.core.kite.LiveMarketService
+import com.tradingtool.core.kite.TickStore
 import com.tradingtool.core.watchlist.IndicatorService
 import com.tradingtool.core.watchlist.WatchlistService
+import com.tradingtool.eventservice.KiteTickerService
 import com.tradingtool.resources.health.HealthResource
+import com.tradingtool.resources.live.LiveStreamResource
 import com.tradingtool.resources.instruments.InstrumentResource
 import com.tradingtool.resources.kite.KiteResource
 import com.tradingtool.resources.stock.StockResource
@@ -60,6 +63,7 @@ class ServiceModule(
         bind(InstrumentResource::class.java).`in`(Singleton::class.java)
         bind(TradeResource::class.java).`in`(Singleton::class.java)
         bind(WatchlistResource::class.java).`in`(Singleton::class.java)
+        bind(LiveStreamResource::class.java).`in`(Singleton::class.java)
     }
 
     @Provides
@@ -146,6 +150,17 @@ class ServiceModule(
     @Singleton
     fun provideLiveMarketService(kiteClient: KiteConnectClient): LiveMarketService =
         LiveMarketService(kiteClient)
+
+    @Provides
+    @Singleton
+    fun provideTickStore(): TickStore = TickStore()
+
+    @Provides
+    @Singleton
+    fun provideKiteTickerService(
+        kiteClient: KiteConnectClient,
+        tickStore: TickStore,
+    ): KiteTickerService = KiteTickerService(kiteClient, tickStore)
 
     @Provides
     @Singleton

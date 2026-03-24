@@ -16,7 +16,11 @@ import com.tradingtool.resources.kite.KiteResource
 import com.tradingtool.resources.stock.StockResource
 import com.tradingtool.resources.telegram.TelegramResource
 import com.tradingtool.resources.trade.TradeResource
+import com.tradingtool.core.stock.dao.StockReadDao
+import com.tradingtool.core.stock.dao.StockWriteDao
+import com.tradingtool.resources.live.LiveStreamResource
 import com.tradingtool.resources.watchlist.WatchlistResource
+import com.tradingtool.eventservice.KiteTickerService
 import io.dropwizard.core.Application
 import io.dropwizard.configuration.EnvironmentVariableSubstitutor
 import io.dropwizard.configuration.SubstitutingSourceProvider
@@ -111,7 +115,7 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         )
         corsFilter.setInitParameter(
             CrossOriginFilter.ALLOWED_HEADERS_PARAM,
-            "X-Requested-With,Content-Type,Accept,Origin,Authorization",
+            "X-Requested-With,Content-Type,Accept,Origin,Authorization,Last-Event-ID,Cache-Control",
         )
         corsFilter.setInitParameter(CrossOriginFilter.ALLOW_CREDENTIALS_PARAM, "true")
         corsFilter.addMappingForUrlPatterns(EnumSet.allOf(DispatcherType::class.java), true, "/*")
@@ -145,6 +149,10 @@ class DropwizardApplication : Application<DropwizardConfig>() {
 
         // Populate instrument cache at startup (now guaranteed to have auth).
         val instrumentCache = injector.getInstance(com.tradingtool.core.kite.InstrumentCache::class.java)
+        val kiteTickerService = injector.getInstance(KiteTickerService::class.java)
+        val stockHandler = injector.getInstance(
+            Key.get(object : TypeLiteral<JdbiHandler<StockReadDao, StockWriteDao>>() {})
+        )
         Thread {
             try {
                 val instruments = kiteClient.client().getInstruments("NSE")
@@ -152,6 +160,17 @@ class DropwizardApplication : Application<DropwizardConfig>() {
                 println("[InstrumentCache] Loaded ${instrumentCache.size()} NSE instruments at startup")
             } catch (e: Exception) {
                 println("[InstrumentCache] Failed to load at startup: ${e.message}")
+            }
+
+            // Start Kite WebSocket ticker with all watchlist instrument tokens.
+            try {
+                val tokens = runBlocking {
+                    stockHandler.read { dao -> dao.listAll() }
+                }.map { it.instrumentToken }.filter { it > 0 }
+                kiteTickerService.start(tokens)
+                println("[KiteTicker] Started — subscribing to ${tokens.size} instruments")
+            } catch (e: Exception) {
+                println("[KiteTicker] Failed to start at startup: ${e.message}")
             }
         }.also { it.isDaemon = true }.start()
 
@@ -163,6 +182,7 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         val instrumentResource = injector.getInstance(InstrumentResource::class.java)
         val tradeResource = injector.getInstance(TradeResource::class.java)
         val watchlistResource = injector.getInstance(WatchlistResource::class.java)
+        val liveStreamResource = injector.getInstance(LiveStreamResource::class.java)
 
         // Register resources with Jersey
         environment.jersey().register(healthResource)
@@ -172,6 +192,7 @@ class DropwizardApplication : Application<DropwizardConfig>() {
         environment.jersey().register(instrumentResource)
         environment.jersey().register(tradeResource)
         environment.jersey().register(watchlistResource)
+        environment.jersey().register(liveStreamResource)
         environment.jersey().register(MultiPartFeature::class.java)
 
         // Enable RolesAllowed feature for security annotations
