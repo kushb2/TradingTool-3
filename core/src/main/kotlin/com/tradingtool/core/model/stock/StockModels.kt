@@ -8,7 +8,9 @@ import kotlinx.serialization.Serializable
 
 @Serializable
 data class StockTag(
+    @JsonProperty("name")
     val name: String,
+    @JsonProperty("color")
     val color: String,
 )
 
@@ -38,6 +40,7 @@ data class Stock(
 
 @Serializable
 data class CreateStockInput(
+    @JsonProperty("symbol")
     val symbol: String,
     @SerialName("instrument_token")
     @JsonProperty("instrument_token")
@@ -45,16 +48,23 @@ data class CreateStockInput(
     @SerialName("company_name")
     @JsonProperty("company_name")
     val companyName: String,
+    @JsonProperty("exchange")
     val exchange: String,
+    @JsonProperty("notes")
     val notes: String? = null,
+    @JsonProperty("priority")
     val priority: Int? = null,
+    @JsonProperty("tags")
     val tags: List<StockTag> = emptyList(),
 )
 
 @Serializable
 data class UpdateStockPayload(
+    @JsonProperty("notes")
     val notes: String? = null,
+    @JsonProperty("priority")
     val priority: Int? = null,
+    @JsonProperty("tags")
     val tags: List<StockTag>? = null,
 )
 

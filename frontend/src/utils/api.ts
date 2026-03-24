@@ -88,18 +88,22 @@ export async function getJson<T>(path: string): Promise<T> {
 }
 
 export async function postJson<T>(path: string, body: unknown): Promise<T> {
+  const serialized = JSON.stringify(body);
+  console.log(`📮 POST ${path}:`, serialized);
   return sendRequest<T>(path, {
     method: "POST",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
+    body: serialized,
   });
 }
 
 export async function patchJson<T>(path: string, body: unknown): Promise<T> {
+  const serialized = JSON.stringify(body);
+  console.log(`🔧 PATCH ${path}:`, serialized);
   return sendRequest<T>(path, {
     method: "PATCH",
     headers: { "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify(body),
+    body: serialized,
   });
 }
 

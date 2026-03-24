@@ -30,26 +30,74 @@ interface UseStocksResult {
   deleteStock: (stockId: number) => Promise<void>;
 }
 
+// Module-level cache: shared across all component instances
+let cachedStocks: Stock[] | null = null;
+let fetchPromise: Promise<Stock[]> | null = null;
+let stocksChangeListeners: ((stocks: Stock[]) => void)[] = [];
+
+function notifyStocksChange(stocks: Stock[]) {
+  cachedStocks = stocks;
+  stocksChangeListeners.forEach((listener) => listener(stocks));
+}
+
 export function useStocks(): UseStocksResult {
-  const [stocks, setStocks] = useState<Stock[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [stocks, setStocks] = useState<Stock[]>(cachedStocks ?? []);
+  const [loading, setLoading] = useState(cachedStocks === null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
+    // If already cached, use it
+    if (cachedStocks !== null) {
+      setStocks(cachedStocks);
+      setLoading(false);
+      return;
+    }
+
+    // If a fetch is already in progress, wait for it
+    if (fetchPromise !== null) {
+      try {
+        const data = await fetchPromise;
+        setStocks(data);
+        setLoading(false);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to fetch stocks");
+        setLoading(false);
+      }
+      return;
+    }
+
+    // Start a new fetch
     setLoading(true);
     setError(null);
+    fetchPromise = getJson<Stock[]>("/api/stocks");
     try {
-      const data = await getJson<Stock[]>("/api/stocks");
+      const data = await fetchPromise;
+      notifyStocksChange(data);
       setStocks(data);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to fetch stocks");
     } finally {
       setLoading(false);
+      fetchPromise = null;
     }
   }, []);
 
   useEffect(() => {
-    void fetchAll();
+    // Register listener for cache updates from other components
+    stocksChangeListeners.push(setStocks);
+
+    // Initial fetch if not cached
+    if (cachedStocks === null && fetchPromise === null) {
+      void fetchAll();
+    } else if (cachedStocks !== null) {
+      setStocks(cachedStocks);
+      setLoading(false);
+    }
+
+    return () => {
+      // Cleanup listener
+      stocksChangeListeners = stocksChangeListeners.filter((listener) => listener !== setStocks);
+    };
   }, [fetchAll]);
 
   // Derive unique tags from the loaded stocks — no extra API call needed
@@ -85,7 +133,9 @@ export function useStocks(): UseStocksResult {
       priority: payload.priority ?? null,
       tags: payload.tags ?? [],
     });
-    setStocks((prev) => [created, ...prev]);
+    const updated = [created, ...(stocks ?? [])];
+    notifyStocksChange(updated);
+    setStocks(updated);
     return created;
   };
 
@@ -94,13 +144,17 @@ export function useStocks(): UseStocksResult {
     payload: UpdateStockInput,
   ): Promise<Stock> => {
     const updated = await patchJson<Stock>(`/api/stocks/${stockId}`, payload);
-    setStocks((prev) => prev.map((s) => (s.id === stockId ? updated : s)));
+    const newStocks = (stocks ?? []).map((s) => (s.id === stockId ? updated : s));
+    notifyStocksChange(newStocks);
+    setStocks(newStocks);
     return updated;
   };
 
   const deleteStock = async (stockId: number): Promise<void> => {
     await deleteJson(`/api/stocks/${stockId}`);
-    setStocks((prev) => prev.filter((s) => s.id !== stockId));
+    const newStocks = (stocks ?? []).filter((s) => s.id !== stockId);
+    notifyStocksChange(newStocks);
+    setStocks(newStocks);
   };
 
   return {

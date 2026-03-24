@@ -87,15 +87,17 @@ export function StockDetailPanel({
     if (!selectedInstrument) return;
     setSaving(true);
     try {
-      await onCreate({
+      const payload = {
         symbol: selectedInstrument.trading_symbol,
         instrument_token: selectedInstrument.instrument_token,
         company_name: selectedInstrument.company_name,
         exchange: selectedInstrument.exchange,
         priority: priority > 0 ? priority : undefined,
-        notes: notesDraft || undefined,
+        notes: notesDraft.trim().length > 0 ? notesDraft : undefined,
         tags: tagsDraft.length > 0 ? tagsDraft : undefined,
-      });
+      };
+      console.log("📤 Sending POST payload:", JSON.stringify(payload, null, 2));
+      await onCreate(payload);
     } catch (e) {
       messageApi.error(e instanceof Error ? e.message : "Failed to create stock");
     } finally {
@@ -107,11 +109,13 @@ export function StockDetailPanel({
     if (!stock) return;
     setSaving(true);
     try {
-      await onUpdate({
+      const payload = {
         priority: priority > 0 ? priority : undefined,
-        notes: notesDraft || undefined,
+        notes: notesDraft.trim().length > 0 ? notesDraft : undefined,
         tags: tagsDraft.length > 0 ? tagsDraft : undefined,
-      });
+      };
+      console.log("📤 Sending PATCH payload:", JSON.stringify(payload, null, 2));
+      await onUpdate(payload);
     } catch (e) {
       messageApi.error(e instanceof Error ? e.message : "Failed to update stock");
     } finally {

@@ -11,5 +11,8 @@
     "backend:package": "mvn -f pom.xml -pl service -am clean package -DskipTests",
     "backend:docker:build": "docker build -t trading-tool-backend .",
     "backend:docker:run": "docker run --rm --name trading-tool-backend-local -p 8080:8080 trading-tool-backend"
+  },
+  "dependencies": {
+    "@antv/g6": "^5.0.51"
   }
 }
