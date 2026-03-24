@@ -71,3 +71,41 @@ export interface InstrumentSearchResult {
   exchange: string;
   instrument_type: string;
 }
+
+export interface GttTarget {
+  percent: number;
+  price: string;
+  yield_percent: string;
+}
+
+export interface Trade {
+  id: number;
+  stock_id: number;
+  nse_symbol: string;
+  quantity: number;
+  avg_buy_price: string;
+  today_low: string | null;
+  stop_loss_percent: string;
+  stop_loss_price: string;
+  notes: string | null;
+  trade_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TradeWithTargets {
+  trade: Trade;
+  gtt_targets: GttTarget[];
+  total_invested: string;
+}
+
+export interface CreateTradeInput {
+  stock_id: number;
+  nse_symbol: string;
+  quantity: number;
+  avg_buy_price: string;
+  today_low?: string;
+  stop_loss_percent: string;
+  notes?: string;
+  trade_date?: string;
+}

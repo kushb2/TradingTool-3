@@ -1,5 +1,8 @@
 package com.tradingtool.core.trade.service
 
+import com.google.inject.Inject
+import com.google.inject.Singleton
+import com.tradingtool.core.database.JdbiHandler
 import com.tradingtool.core.model.trade.*
 import com.tradingtool.core.trade.dao.TradeReadDao
 import com.tradingtool.core.trade.dao.TradeWriteDao
@@ -9,10 +12,11 @@ import java.math.RoundingMode
 /**
  * Service layer for trade journal operations.
  * Handles GTT target calculation and consolidation logic.
+ * All database operations are routed through JdbiHandler.
  */
-class TradeService(
-    private val readDao: TradeReadDao,
-    private val writeDao: TradeWriteDao,
+@Singleton
+class TradeService @Inject constructor(
+    private val db: JdbiHandler<TradeReadDao, TradeWriteDao>,
 ) {
 
     companion object {
@@ -25,8 +29,8 @@ class TradeService(
     /**
      * Fetch all trades with calculated GTT targets.
      */
-    fun getTradesWithTargets(): List<TradeWithTargets> {
-        val trades = readDao.getAllTrades()
+    suspend fun getTradesWithTargets(): List<TradeWithTargets> {
+        val trades = runRead { dao -> dao.getAllTrades() }
         return trades.map { trade ->
             val targets = calculateGttTargets(trade)
             val totalInvested = calculateTotalInvested(trade)
@@ -41,8 +45,8 @@ class TradeService(
     /**
      * Fetch single trade with GTT targets.
      */
-    fun getTradeWithTargets(tradeId: Long): TradeWithTargets? {
-        val trade = readDao.getTradeById(tradeId) ?: return null
+    suspend fun getTradeWithTargets(tradeId: Long): TradeWithTargets? {
+        val trade = runRead { dao -> dao.getTradeById(tradeId) } ?: return null
         val targets = calculateGttTargets(trade)
         val totalInvested = calculateTotalInvested(trade)
         return TradeWithTargets(
@@ -63,7 +67,7 @@ class TradeService(
      *
      * All consolidation is handled at the DB level via UPSERT.
      */
-    fun createOrConsolidateTrade(input: CreateTradeInput): TradeWithTargets {
+    suspend fun createOrConsolidateTrade(input: CreateTradeInput): TradeWithTargets {
         // Calculate stop loss price from avg price and stop loss %
         val stopLossPrice = calculateStopLossPrice(
             avgBuyPrice = input.avgBuyPrice,
@@ -71,17 +75,19 @@ class TradeService(
         )
 
         // Upsert to DB (handles consolidation automatically)
-        val trade = writeDao.upsertTrade(
-            stockId = input.stockId,
-            nseSymbol = input.nseSymbol,
-            quantity = input.quantity,
-            avgBuyPrice = input.avgBuyPrice,
-            todayLow = input.todayLow,
-            stopLossPercent = input.stopLossPercent,
-            stopLossPrice = stopLossPrice,
-            notes = input.notes,
-            tradeDate = input.tradeDate
-        )
+        val trade = runWrite { dao ->
+            dao.upsertTrade(
+                stockId = input.stockId,
+                nseSymbol = input.nseSymbol,
+                quantity = input.quantity,
+                avgBuyPrice = input.avgBuyPrice,
+                todayLow = input.todayLow,
+                stopLossPercent = input.stopLossPercent,
+                stopLossPrice = stopLossPrice,
+                notes = input.notes,
+                tradeDate = input.tradeDate
+            )
+        }
 
         // Return enriched response with targets
         val targets = calculateGttTargets(trade)
@@ -96,8 +102,8 @@ class TradeService(
     /**
      * Delete trade by ID.
      */
-    fun deleteTrade(tradeId: Long): Boolean {
-        return writeDao.deleteTrade(tradeId) > 0
+    suspend fun deleteTrade(tradeId: Long): Boolean {
+        return runWrite { dao -> dao.deleteTrade(tradeId) } > 0
     }
 
     // ==================== Calculation Helpers ====================
@@ -152,5 +158,15 @@ class TradeService(
         val avg = BigDecimal(trade.avgBuyPrice)
         val total = qty * avg
         return total.setScale(2, RoundingMode.HALF_UP).toPlainString()
+    }
+
+    // ==================== Helper Methods for DB Access ====================
+
+    private suspend fun <T> runRead(operation: (TradeReadDao) -> T): T {
+        return db.read(operation)
+    }
+
+    private suspend fun <T> runWrite(operation: (TradeWriteDao) -> T): T {
+        return db.write(operation)
     }
 }

@@ -17,6 +17,9 @@ import com.tradingtool.core.http.JdkHttpRequestExecutor
 import com.tradingtool.core.model.DatabaseConfig
 import com.tradingtool.core.telegram.TelegramApiClient
 import com.tradingtool.core.telegram.TelegramSender
+import com.tradingtool.core.trade.dao.TradeReadDao
+import com.tradingtool.core.trade.dao.TradeWriteDao
+import com.tradingtool.core.trade.service.TradeService
 import com.tradingtool.core.watchlist.dao.WatchlistReadDao
 import com.tradingtool.core.watchlist.dao.WatchlistWriteDao
 import com.tradingtool.core.watchlist.service.WatchlistReadService
@@ -27,6 +30,7 @@ import com.tradingtool.resources.kite.KiteResource
 import com.tradingtool.resources.layout.LayoutResource
 import com.tradingtool.resources.notes.StockNotesResource
 import com.tradingtool.resources.telegram.TelegramResource
+import com.tradingtool.resources.trade.TradeResource
 import com.tradingtool.resources.watchlist.WatchlistResource
 import java.net.http.HttpClient
 import kotlinx.serialization.json.Json
@@ -38,6 +42,7 @@ class ServiceModule(
         bind(AppConfig::class.java).toInstance(appConfig)
         bind(WatchlistReadService::class.java).`in`(Singleton::class.java)
         bind(WatchlistWriteService::class.java).`in`(Singleton::class.java)
+        bind(TradeService::class.java).`in`(Singleton::class.java)
         bind(HttpRequestExecutor::class.java).to(JdkHttpRequestExecutor::class.java).`in`(Singleton::class.java)
 
         // Register resources for Dropwizard
@@ -48,6 +53,7 @@ class ServiceModule(
         bind(InstrumentResource::class.java).`in`(Singleton::class.java)
         bind(StockNotesResource::class.java).`in`(Singleton::class.java)
         bind(LayoutResource::class.java).`in`(Singleton::class.java)
+        bind(TradeResource::class.java).`in`(Singleton::class.java)
     }
 
     @Provides
@@ -93,6 +99,16 @@ class ServiceModule(
             config = config,
             readDaoClass = WatchlistReadDao::class.java,
             writeDaoClass = WatchlistWriteDao::class.java,
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideTradeJdbiHandler(config: DatabaseConfig): JdbiHandler<TradeReadDao, TradeWriteDao> {
+        return JdbiHandler(
+            config = config,
+            readDaoClass = TradeReadDao::class.java,
+            writeDaoClass = TradeWriteDao::class.java,
         )
     }
 
