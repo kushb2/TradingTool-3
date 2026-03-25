@@ -77,6 +77,27 @@ interface TradeWriteDao {
     ): Trade
 
     /**
+     * Close trade: record the sell price and date.
+     * Returns null if trade does not exist.
+     */
+    @SqlQuery(
+        """
+        UPDATE public.${Tables.TRADES}
+        SET
+            ${TradeColumns.CLOSE_PRICE} = CAST(:closePrice AS NUMERIC(12,2)),
+            ${TradeColumns.CLOSE_DATE}  = CAST(:closeDate AS DATE),
+            ${TradeColumns.UPDATED_AT}  = NOW()
+        WHERE ${TradeColumns.ID} = :tradeId
+        RETURNING ${TradeColumns.ALL}
+        """
+    )
+    fun closeTrade(
+        @Bind("tradeId") tradeId: Long,
+        @Bind("closePrice") closePrice: String,
+        @Bind("closeDate") closeDate: String,
+    ): Trade?
+
+    /**
      * Delete trade by ID.
      */
     @SqlUpdate(

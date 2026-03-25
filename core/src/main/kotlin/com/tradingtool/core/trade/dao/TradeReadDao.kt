@@ -64,6 +64,8 @@ class TradeMapper : RowMapper<Trade> {
             stopLossPrice = rs.getBigDecimal(TradeColumns.STOP_LOSS_PRICE).toPlainString(),
             notes = rs.getString(TradeColumns.NOTES),
             tradeDate = rs.getDate(TradeColumns.TRADE_DATE).toLocalDate().toString(),
+            closePrice = rs.getBigDecimal(TradeColumns.CLOSE_PRICE)?.toPlainString(),
+            closeDate = rs.getDate(TradeColumns.CLOSE_DATE)?.toLocalDate()?.toString(),
             createdAt = toUtcString(rs.getObject(TradeColumns.CREATED_AT, OffsetDateTime::class.java)),
             updatedAt = toUtcString(rs.getObject(TradeColumns.UPDATED_AT, OffsetDateTime::class.java)),
         )

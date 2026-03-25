@@ -61,8 +61,15 @@ export interface Trade {
   stop_loss_price: string;
   notes: string | null;
   trade_date: string;
+  close_price: string | null; // null = OPEN, set = CLOSED
+  close_date: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export interface CloseTradeInput {
+  close_price: string;
+  close_date: string;
 }
 
 export interface TradeWithTargets {

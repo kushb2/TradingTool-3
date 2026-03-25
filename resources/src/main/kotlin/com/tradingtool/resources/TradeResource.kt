@@ -1,6 +1,7 @@
 package com.tradingtool.resources
 
 import com.google.inject.Inject
+import com.tradingtool.core.model.trade.CloseTradeInput
 import com.tradingtool.core.model.trade.CreateTradeInput
 import com.tradingtool.core.trade.service.TradeService
 import com.tradingtool.core.di.ResourceScope
@@ -59,6 +60,20 @@ class TradeResource @Inject constructor(
         if (input.stopLossPercent.toDoubleOrNull() == null || input.stopLossPercent.toDouble() < 0)
             return@endpoint badRequest("Stop loss percent must be a non-negative number")
         created(tradeService.createOrConsolidateTrade(input))
+    }
+
+    /** POST /api/trades/{tradeId}/close — record exit price and close the position. */
+    @POST
+    @Path("/{tradeId}/close")
+    @Consumes(MediaType.APPLICATION_JSON)
+    fun closeTrade(
+        @PathParam("tradeId") tradeId: Long,
+        body: CloseTradeInput?
+    ): CompletableFuture<Response> = ioScope.endpoint {
+        val input = body ?: return@endpoint badRequest("Request body is required")
+        val result = tradeService.closeTrade(tradeId, input)
+            ?: return@endpoint notFound("Trade not found")
+        ok(result)
     }
 
     /** DELETE /api/trades/{tradeId} — delete trade by ID. */

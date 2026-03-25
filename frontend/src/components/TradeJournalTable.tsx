@@ -1,167 +1,452 @@
-import { DeleteOutlined } from "@ant-design/icons";
-import { Button, Modal, Space, Table, Tag, Tooltip, message } from "antd";
+import { CloseCircleOutlined, DeleteOutlined, LogoutOutlined } from "@ant-design/icons";
+import { Button, DatePicker, Form, Input, Modal, Space, Table, Tag, Tooltip, Typography, message } from "antd";
 import type { ColumnType } from "antd/es/table";
+import dayjs from "dayjs";
 import { useState } from "react";
-import type { TradeWithTargets } from "../types";
+import type { CloseTradeInput, TradeWithTargets } from "../types";
+
+const { Text } = Typography;
 
 interface TradeJournalTableProps {
   trades: TradeWithTargets[];
+  onClose: (tradeId: number, payload: CloseTradeInput) => Promise<void>;
   onDelete: (tradeId: number) => Promise<void>;
   loading?: boolean;
+  isClosed?: boolean;
+}
+
+interface CloseModalState {
+  tradeId: number;
+  symbol: string;
+  avgBuyPrice: string;
 }
 
 export function TradeJournalTable({
   trades,
+  onClose,
   onDelete,
   loading = false,
+  isClosed = false,
 }: TradeJournalTableProps) {
+  const [closeModal, setCloseModal] = useState<CloseModalState | null>(null);
+  const [closePrice, setClosePrice] = useState("");
+  const [closeDate, setCloseDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [closing, setClosing] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
 
-  const handleDelete = async (tradeId: number) => {
+  const handleDeleteConfirm = (tradeId: number) => {
     Modal.confirm({
-      title: "Delete Trade?",
-      content: "This action cannot be undone.",
-      okText: "Delete",
+      title: "Remove this trade?",
+      content: "This will permanently delete the record.",
+      okText: "Remove",
       okType: "danger",
       onOk: async () => {
         try {
           await onDelete(tradeId);
-          message.success("Trade deleted");
+          message.success("Trade removed");
         } catch (e) {
-          message.error(e instanceof Error ? e.message : "Failed to delete trade");
+          message.error(e instanceof Error ? e.message : "Failed to delete");
         }
       },
     });
   };
 
-  const columns: ColumnType<TradeWithTargets>[] = [
+  const handleCloseSubmit = async () => {
+    if (!closeModal) return;
+    const price = parseFloat(closePrice);
+    if (isNaN(price) || price <= 0) {
+      message.error("Enter a valid close price");
+      return;
+    }
+    setClosing(true);
+    try {
+      await onClose(closeModal.tradeId, { close_price: closePrice, close_date: closeDate });
+      message.success(`${closeModal.symbol} position closed`);
+      setCloseModal(null);
+      setClosePrice("");
+    } catch (e) {
+      message.error(e instanceof Error ? e.message : "Failed to close position");
+    } finally {
+      setClosing(false);
+    }
+  };
+
+  const openColumns: ColumnType<TradeWithTargets>[] = [
     {
-      title: "Date",
-      dataIndex: ["trade", "trade_date"],
-      key: "trade_date",
-      width: 90,
-      sorter: (a, b) => a.trade.trade_date.localeCompare(b.trade.trade_date),
-    },
-    {
-      title: "Symbol",
-      dataIndex: ["trade", "nse_symbol"],
-      key: "nse_symbol",
-      width: 140,
-      render: (symbol, record) => (
-        <span style={{ whiteSpace: "nowrap" }}>
-          <strong>{symbol}</strong> <span style={{ color: "#999", fontSize: "11px" }}>• ₹{record.total_invested}</span>
-        </span>
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>STOCK</Text>,
+      key: "stock",
+      width: 150,
+      fixed: "left" as const,
+      render: (_, record) => (
+        <div>
+          <Text strong style={{ fontSize: 14, color: "#1a1a2e" }}>{record.trade.nse_symbol}</Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>{record.trade.trade_date}</Text>
+          </div>
+        </div>
       ),
     },
     {
-      title: "Qty",
-      dataIndex: ["trade", "quantity"],
-      key: "quantity",
-      width: 60,
-      sorter: (a, b) => a.trade.quantity - b.trade.quantity,
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>POSITION</Text>,
+      key: "position",
+      width: 165,
+      render: (_, record) => {
+        const totalInvested = parseFloat(record.total_invested);
+        return (
+          <div>
+            <Text style={{ fontSize: 13, fontWeight: 600, color: "#1a1a2e" }}>
+              ₹{totalInvested.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </Text>
+            <div>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                {record.trade.quantity} × ₹{record.trade.avg_buy_price}
+              </Text>
+            </div>
+          </div>
+        );
+      },
     },
     {
-      title: "Avg Price",
-      dataIndex: ["trade", "avg_buy_price"],
-      key: "avg_buy_price",
-      width: 80,
-      render: (price) => `₹${price}`,
-    },
-    {
-      title: "Today's Low",
-      dataIndex: ["trade", "today_low"],
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>TODAY'S LOW</Text>,
       key: "today_low",
-      width: 80,
-      render: (low) => (low ? `₹${low}` : "—"),
-    },
-    {
-      title: "Stop Loss",
-      dataIndex: ["trade", "stop_loss_price"],
-      key: "stop_loss_price",
       width: 110,
-      render: (price, record) => (
-        <span className="danger-text" style={{ whiteSpace: "nowrap" }}>
-          ₹{price} (-{record.trade.stop_loss_percent}%)
-        </span>
-      ),
+      render: (_, record) => {
+        const low = record.trade.today_low;
+        if (!low) return <Text type="secondary">—</Text>;
+        return <Text style={{ fontWeight: 500, color: "#595959" }}>₹{low}</Text>;
+      },
     },
     {
-      title: "GTT Targets",
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>STOP LOSS</Text>,
+      key: "stop_loss",
+      width: 165,
+      render: (_, record) => {
+        const totalInvested = parseFloat(record.total_invested);
+        const slPct = parseFloat(record.trade.stop_loss_percent);
+        const riskAmount = (totalInvested * slPct) / 100;
+        return (
+          <div>
+            <Tag
+              style={{
+                background: "#fff1f0",
+                borderColor: "#ffa39e",
+                color: "#cf1322",
+                fontWeight: 600,
+                fontSize: 12,
+                borderRadius: 6,
+                padding: "1px 8px",
+              }}
+            >
+              ₹{record.trade.stop_loss_price} &nbsp;·&nbsp; -{record.trade.stop_loss_percent}%
+            </Tag>
+            <div style={{ marginTop: 3 }}>
+              <Text style={{ fontSize: 11, color: "#eb3a3a" }}>
+                Risk: ₹{riskAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+              </Text>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>TARGETS</Text>,
       dataIndex: "gtt_targets",
       key: "gtt_targets",
-      width: 250,
-      render: (targets: any[]) => (
-        <Space wrap size={4}>
-          {targets.map((target: any) => (
-            <Tag
-              key={target.percent}
-              bordered={false}
-              color="success"
-              style={{ margin: 0, fontSize: "11px", padding: "0 4px" }}
-            >
-              +{target.percent}% ₹{target.price}
-            </Tag>
-          ))}
-        </Space>
-      ),
+      width: 260,
+      render: (targets: any[]) => {
+        const greenShades = ["#f6ffed", "#d9f7be", "#b7eb8f", "#95de64", "#73d13d", "#52c41a", "#389e0d"];
+        const textShades = ["#389e0d", "#389e0d", "#237804", "#237804", "#135200", "#135200", "#092b00"];
+        return (
+          <Space wrap size={4}>
+            {targets.map((target: any, i: number) => {
+              const shade = Math.min(i, greenShades.length - 1);
+              return (
+                <Tag
+                  key={target.percent}
+                  style={{
+                    background: greenShades[shade],
+                    borderColor: "#b7eb8f",
+                    color: textShades[shade],
+                    fontWeight: 600,
+                    fontSize: 11,
+                    borderRadius: 6,
+                    padding: "1px 7px",
+                    margin: 0,
+                  }}
+                >
+                  +{target.percent}% ₹{target.price}
+                </Tag>
+              );
+            })}
+          </Space>
+        );
+      },
     },
     {
-      title: "Notes",
-      dataIndex: ["trade", "notes"],
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>NOTES</Text>,
       key: "notes",
       width: 150,
-      render: (notes, record) => {
-        if (!notes) return "—";
+      render: (_, record) => {
+        const notes = record.trade.notes;
+        if (!notes) return <Text type="secondary">—</Text>;
         const isExpanded = expandedNotes.has(record.trade.id);
-        const displayText = isExpanded ? notes : notes.substring(0, 40);
         return (
           <Tooltip title={notes}>
             <span
               onClick={() => {
-                const newExpanded = new Set(expandedNotes);
-                if (isExpanded) {
-                  newExpanded.delete(record.trade.id);
-                } else {
-                  newExpanded.add(record.trade.id);
-                }
-                setExpandedNotes(newExpanded);
+                const next = new Set(expandedNotes);
+                isExpanded ? next.delete(record.trade.id) : next.add(record.trade.id);
+                setExpandedNotes(next);
               }}
-              style={{ cursor: "pointer", color: "#1677ff" }}
+              style={{ cursor: "pointer", color: "#595959", fontSize: 12 }}
             >
-              {displayText}
-              {notes.length > 40 && "..."}
+              {isExpanded ? notes : notes.substring(0, 40)}
+              {notes.length > 40 && !isExpanded && (
+                <Text style={{ color: "#00b386", fontSize: 11, marginLeft: 2 }}>more</Text>
+              )}
             </span>
           </Tooltip>
         );
       },
     },
     {
-      title: "Action",
+      title: "",
       key: "action",
-      width: 60,
+      width: 80,
       render: (_, record) => (
-        <Button
-          type="text"
-          danger
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={() => handleDelete(record.trade.id)}
-          loading={loading}
-        />
+        <Space size={2}>
+          <Tooltip title="Close position">
+            <Button
+              type="text"
+              size="small"
+              icon={<LogoutOutlined style={{ color: "#00b386" }} />}
+              onClick={() =>
+                setCloseModal({
+                  tradeId: record.trade.id,
+                  symbol: record.trade.nse_symbol,
+                  avgBuyPrice: record.trade.avg_buy_price,
+                })
+              }
+            />
+          </Tooltip>
+          <Tooltip title="Delete trade">
+            <Button
+              type="text"
+              danger
+              size="small"
+              icon={<DeleteOutlined />}
+              onClick={() => handleDeleteConfirm(record.trade.id)}
+              loading={loading}
+            />
+          </Tooltip>
+        </Space>
       ),
     },
   ];
 
+  // Closed view: show exit price + P&L instead of stop loss + targets
+  const closedColumns: ColumnType<TradeWithTargets>[] = [
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>STOCK</Text>,
+      key: "stock",
+      width: 150,
+      fixed: "left" as const,
+      render: (_, record) => (
+        <div>
+          <Text strong style={{ fontSize: 14, color: "#595959" }}>{record.trade.nse_symbol}</Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>Opened {record.trade.trade_date}</Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>POSITION</Text>,
+      key: "position",
+      width: 165,
+      render: (_, record) => (
+        <div>
+          <Text style={{ fontSize: 13, fontWeight: 600, color: "#595959" }}>
+            {record.trade.quantity} × ₹{record.trade.avg_buy_price}
+          </Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              ₹{parseFloat(record.total_invested).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>EXIT PRICE</Text>,
+      key: "exit_price",
+      width: 130,
+      render: (_, record) => (
+        <div>
+          <Text style={{ fontWeight: 600, color: "#1a1a2e" }}>₹{record.trade.close_price}</Text>
+          <div>
+            <Text type="secondary" style={{ fontSize: 11 }}>{record.trade.close_date}</Text>
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>P&amp;L</Text>,
+      key: "pnl",
+      width: 160,
+      render: (_, record) => {
+        const closeP = parseFloat(record.trade.close_price!);
+        const avgP = parseFloat(record.trade.avg_buy_price);
+        const qty = record.trade.quantity;
+        const pnl = (closeP - avgP) * qty;
+        const pnlPct = ((closeP - avgP) / avgP) * 100;
+        const isProfit = pnl >= 0;
+        const color = isProfit ? "#00b386" : "#eb3a3a";
+        const bg = isProfit ? "#f0fdf4" : "#fff1f0";
+        const border = isProfit ? "#bbf7d0" : "#ffa39e";
+        return (
+          <Tag
+            style={{
+              background: bg,
+              borderColor: border,
+              color,
+              fontWeight: 700,
+              fontSize: 12,
+              borderRadius: 6,
+              padding: "2px 10px",
+            }}
+          >
+            {isProfit ? "+" : ""}₹{Math.abs(pnl).toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            &nbsp;({isProfit ? "+" : ""}{pnlPct.toFixed(1)}%)
+          </Tag>
+        );
+      },
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>NOTES</Text>,
+      key: "notes",
+      width: 150,
+      render: (_, record) => {
+        const notes = record.trade.notes;
+        if (!notes) return <Text type="secondary">—</Text>;
+        return (
+          <Tooltip title={notes}>
+            <Text style={{ color: "#595959", fontSize: 12 }}>
+              {notes.substring(0, 50)}{notes.length > 50 && "..."}
+            </Text>
+          </Tooltip>
+        );
+      },
+    },
+    {
+      title: "",
+      key: "action",
+      width: 48,
+      render: (_, record) => (
+        <Tooltip title="Delete record">
+          <Button
+            type="text"
+            danger
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteConfirm(record.trade.id)}
+          />
+        </Tooltip>
+      ),
+    },
+  ];
+
+  // Derive close price preview in the modal
+  const avgBuyNum = closeModal ? parseFloat(closeModal.avgBuyPrice) : 0;
+  const closePriceNum = parseFloat(closePrice);
+  const modalPnl =
+    closeModal && !isNaN(closePriceNum) && closePriceNum > 0
+      ? closePriceNum - avgBuyNum
+      : null;
+
   return (
-    <Table<TradeWithTargets>
-      className="trade-book-table"
-      columns={columns}
-      dataSource={trades}
-      rowKey={(record) => record.trade.id}
-      size="small"
-      style={{ background: "white", borderRadius: "4px" }}
-      scroll={{ x: 1000 }}
-      pagination={{ pageSize: 20, showSizeChanger: true }}
-    />
+    <>
+      <Table<TradeWithTargets>
+        columns={isClosed ? closedColumns : openColumns}
+        dataSource={trades}
+        rowKey={(r) => r.trade.id}
+        size="small"
+        scroll={{ x: 1000 }}
+        pagination={{ pageSize: 20, showSizeChanger: true, size: "small" }}
+        onRow={() => ({ style: { verticalAlign: "top" } })}
+      />
+
+      {/* Close Position Modal */}
+      <Modal
+        title={
+          <span>
+            <CloseCircleOutlined style={{ color: "#00b386", marginRight: 8 }} />
+            Close position — {closeModal?.symbol}
+          </span>
+        }
+        open={!!closeModal}
+        onCancel={() => {
+          setCloseModal(null);
+          setClosePrice("");
+        }}
+        onOk={handleCloseSubmit}
+        okText="Close Position"
+        okButtonProps={{
+          style: { background: "#00b386", borderColor: "#00b386" },
+          loading: closing,
+        }}
+        destroyOnClose
+      >
+        <Form layout="vertical" size="small" style={{ marginTop: 16 }}>
+          <Form.Item label="Exit / Sell Price (₹)" required>
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="e.g. 3350.00"
+              value={closePrice}
+              onChange={(e) => setClosePrice(e.target.value)}
+              autoFocus
+              prefix="₹"
+            />
+          </Form.Item>
+          <Form.Item label="Close Date">
+            <DatePicker
+              style={{ width: "100%" }}
+              value={dayjs(closeDate)}
+              onChange={(d) => setCloseDate(d?.format("YYYY-MM-DD") ?? closeDate)}
+            />
+          </Form.Item>
+        </Form>
+
+        {/* Live P&L preview */}
+        {modalPnl !== null && (
+          <div
+            style={{
+              padding: "10px 14px",
+              background: modalPnl >= 0 ? "#f0fdf4" : "#fff1f0",
+              border: `1px solid ${modalPnl >= 0 ? "#bbf7d0" : "#ffa39e"}`,
+              borderRadius: 8,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: 4,
+            }}
+          >
+            <Text style={{ fontSize: 12, color: "#595959" }}>
+              P&L per unit
+            </Text>
+            <Text
+              style={{
+                fontWeight: 700,
+                fontSize: 16,
+                color: modalPnl >= 0 ? "#00b386" : "#eb3a3a",
+              }}
+            >
+              {modalPnl >= 0 ? "+" : ""}₹{Math.abs(modalPnl).toFixed(2)}
+            </Text>
+          </div>
+        )}
+      </Modal>
+    </>
   );
 }

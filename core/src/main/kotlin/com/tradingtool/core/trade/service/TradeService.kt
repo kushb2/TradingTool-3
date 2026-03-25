@@ -3,7 +3,11 @@ package com.tradingtool.core.trade.service
 import com.google.inject.Inject
 import com.google.inject.Singleton
 import com.tradingtool.core.database.JdbiHandler
-import com.tradingtool.core.model.trade.*
+import com.tradingtool.core.model.trade.CloseTradeInput
+import com.tradingtool.core.model.trade.CreateTradeInput
+import com.tradingtool.core.model.trade.GttTarget
+import com.tradingtool.core.model.trade.Trade
+import com.tradingtool.core.model.trade.TradeWithTargets
 import com.tradingtool.core.trade.dao.TradeReadDao
 import com.tradingtool.core.trade.dao.TradeWriteDao
 import java.math.BigDecimal
@@ -118,6 +122,21 @@ class TradeService @Inject constructor(
             gttTargets = targets,
             totalInvested = totalInvested
         )
+    }
+
+    /**
+     * Close a trade: record the exit price and date.
+     * Returns null if the trade does not exist.
+     */
+    suspend fun closeTrade(tradeId: Long, input: CloseTradeInput): TradeWithTargets? {
+        if (input.closePrice.toDoubleOrNull() == null || input.closePrice.toDouble() <= 0)
+            throw IllegalArgumentException("Close price must be a positive number")
+        val trade = db.write { dao ->
+            dao.closeTrade(tradeId, input.closePrice, input.closeDate)
+        } ?: return null
+        val targets = calculateGttTargets(trade)
+        val totalInvested = calculateTotalInvested(trade)
+        return TradeWithTargets(trade = trade, gttTargets = targets, totalInvested = totalInvested)
     }
 
     /**

@@ -83,6 +83,19 @@ export function TradeEntryForm({ onSubmit, loading = false }: TradeEntryFormProp
     message.success("Trade added");
   };
 
+  // Calculated values for live preview
+  const avgPriceNum = parseFloat(formData.avg_buy_price);
+  const slPctNum = parseFloat(formData.stop_loss_percent);
+  const qtyNum = formData.quantity || 0;
+  const stopLossPrice =
+    avgPriceNum > 0 && slPctNum > 0
+      ? (avgPriceNum * (1 - slPctNum / 100)).toFixed(2)
+      : null;
+  const riskAmount =
+    avgPriceNum > 0 && slPctNum > 0 && qtyNum > 0
+      ? ((avgPriceNum * slPctNum) / 100) * qtyNum
+      : null;
+
   return (
     <Form layout="vertical" size="small">
       <Form.Item label="Stock">
@@ -164,15 +177,39 @@ export function TradeEntryForm({ onSubmit, loading = false }: TradeEntryFormProp
         />
       </Form.Item>
 
+      {/* Live risk preview */}
+      {stopLossPrice && riskAmount !== null && (
+        <div
+          style={{
+            padding: "10px 14px",
+            background: "#fff1f0",
+            border: "1px solid #ffa39e",
+            borderRadius: 8,
+            marginBottom: 16,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <span style={{ fontSize: 12, color: "#8c8c8c" }}>Stop price</span>
+            <span style={{ fontWeight: 700, color: "#cf1322", fontSize: 13 }}>₹{stopLossPrice}</span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
+            <span style={{ fontSize: 12, color: "#8c8c8c" }}>Max risk</span>
+            <span style={{ fontWeight: 700, color: "#cf1322", fontSize: 13 }}>
+              ₹{riskAmount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}
+            </span>
+          </div>
+        </div>
+      )}
+
       <Button
         type="primary"
         block
         size="middle"
         loading={loading}
         onClick={handleSubmit}
-        style={{ marginTop: 12 }}
+        style={{ marginTop: 4, background: "#00b386", borderColor: "#00b386", fontWeight: 600 }}
       >
-        Save Trade
+        Add to Book
       </Button>
     </Form>
   );

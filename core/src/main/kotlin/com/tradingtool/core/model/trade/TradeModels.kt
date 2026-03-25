@@ -23,10 +23,23 @@ data class Trade(
     val notes: String? = null,
     @get:JsonProperty("trade_date")
     val tradeDate: String, // YYYY-MM-DD format
+    @get:JsonProperty("close_price")
+    val closePrice: String? = null, // null = position open, non-null = position closed
+    @get:JsonProperty("close_date")
+    val closeDate: String? = null, // YYYY-MM-DD format
     @get:JsonProperty("created_at")
     val createdAt: String,
     @get:JsonProperty("updated_at")
     val updatedAt: String,
+)
+
+// ==================== Input Models for Close Operation ====================
+
+data class CloseTradeInput(
+    @JsonProperty("close_price")
+    val closePrice: String, // e.g., "3350.00"
+    @JsonProperty("close_date")
+    val closeDate: String = java.time.LocalDate.now().toString(), // YYYY-MM-DD
 )
 
 // ==================== Input Models for Create/Consolidate Operations ====================

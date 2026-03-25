@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { deleteJson, getJson, postJson } from "../utils/api";
-import type { CreateTradeInput, TradeWithTargets } from "../types";
+import type { CloseTradeInput, CreateTradeInput, TradeWithTargets } from "../types";
 
 interface UseTradeDataResult {
   trades: TradeWithTargets[];
@@ -8,6 +8,7 @@ interface UseTradeDataResult {
   error: string | null;
   refetch: () => Promise<void>;
   createTrade: (payload: CreateTradeInput) => Promise<TradeWithTargets>;
+  closeTrade: (tradeId: number, payload: CloseTradeInput) => Promise<void>;
   deleteTrade: (tradeId: number) => Promise<void>;
 }
 
@@ -53,6 +54,13 @@ export function useTradeData(): UseTradeDataResult {
     return created;
   };
 
+  const closeTrade = async (tradeId: number, payload: CloseTradeInput): Promise<void> => {
+    const updated = await postJson<TradeWithTargets>(`/api/trades/${tradeId}/close`, payload);
+    const next = trades.map((t) => (t.trade.id === tradeId ? updated : t));
+    setTrades(next);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  };
+
   const deleteTrade = async (tradeId: number): Promise<void> => {
     await deleteJson(`/api/trades/${tradeId}`);
     const updated = trades.filter((t) => t.trade.id !== tradeId);
@@ -71,6 +79,7 @@ export function useTradeData(): UseTradeDataResult {
     error,
     refetch: fetchAll,
     createTrade,
+    closeTrade,
     deleteTrade,
   };
 }
