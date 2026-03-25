@@ -81,7 +81,12 @@ class IntegrationResource @Inject constructor(
     @Produces(MediaType.APPLICATION_JSON)
     fun handleCallback(
         @QueryParam("request_token") requestToken: String?,
+        @QueryParam("status") status: String?,
     ): CompletableFuture<Response> = ioScope.endpoint {
+        if (status != null && status != "success") {
+            log.warn("[KiteCallback] Zerodha returned status={} — login was not completed", status)
+            return@endpoint badRequest("Kite login was not completed. status=$status")
+        }
         if (requestToken.isNullOrBlank()) return@endpoint badRequest("Missing request_token parameter")
 
         log.info("[KiteCallback] Received callback with request token prefix={}", requestToken.prefix())
