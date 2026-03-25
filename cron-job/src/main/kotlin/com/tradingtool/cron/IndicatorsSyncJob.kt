@@ -25,6 +25,7 @@ import com.tradingtool.core.strategy.remora.RemoraSignalReadDao
 import com.tradingtool.core.strategy.remora.RemoraSignalWriteDao
 import com.tradingtool.core.strategy.remora.RemoraService
 import com.tradingtool.core.telegram.TelegramApiClient
+import com.tradingtool.core.telegram.TelegramNotifier
 import com.tradingtool.core.telegram.TelegramSender
 import com.tradingtool.core.watchlist.IndicatorService
 import kotlinx.coroutines.runBlocking
@@ -64,6 +65,7 @@ fun main() {
     )
 
     val telegramSender = buildTelegramSender()
+    val notifier = TelegramNotifier(telegramSender)
 
     val remoraService = RemoraService(
         stockHandler = stockHandler,
@@ -76,11 +78,18 @@ fun main() {
     val scanners: List<SignalScanner> = listOf(remoraService)
 
     runBlocking {
-        val kiteClient = buildAuthenticatedKiteClient(kiteTokenHandler)
-        indicatorService.refreshAll(kiteClient, onlyNeedsRefresh = false)
-        scanners.forEach { scanner ->
-            log.info("Running scanner: {}", scanner.name)
-            scanner.scan(kiteClient)
+        notifier.cronStarted("IndicatorsSyncJob")
+        try {
+            val kiteClient = buildAuthenticatedKiteClient(kiteTokenHandler)
+            indicatorService.refreshAll(kiteClient, onlyNeedsRefresh = false)
+            scanners.forEach { scanner ->
+                log.info("Running scanner: {}", scanner.name)
+                scanner.scan(kiteClient)
+            }
+            notifier.cronCompleted("IndicatorsSyncJob", "${scanners.size} scanner(s) run")
+        } catch (e: Exception) {
+            notifier.cronFailed("IndicatorsSyncJob", e)
+            throw e
         }
     }
 

@@ -8,6 +8,7 @@ import com.tradingtool.core.http.HttpClientConfig
 import com.tradingtool.core.http.SuspendHttpClient
 import com.tradingtool.core.model.telegram.TelegramSendTextRequest
 import com.tradingtool.core.telegram.TelegramApiClient
+import com.tradingtool.core.telegram.TelegramNotifier
 import com.tradingtool.core.telegram.TelegramSender
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
@@ -28,16 +29,22 @@ fun main() {
     log.info("Environment: {}", ConfigLoader.detect())
 
     val config = loadKiteReminderConfig()
-    val result = runBlocking { executeKiteReminder(config) }
+    val notifier = TelegramNotifier(buildTelegramSender(config.botToken, config.chatId, buildHttpClient()))
 
-    when (result) {
-        is ReminderResult.Success -> {
-            log.info("Kite reminder job completed successfully")
-            exitProcess(0)
-        }
-        is ReminderResult.Failure -> {
-            log.error("Kite reminder job failed: {}", result.error.message, result.error)
-            exitProcess(1)
+    runBlocking {
+        notifier.cronStarted("KiteReminderJob")
+        val result = executeKiteReminder(config)
+        when (result) {
+            is ReminderResult.Success -> {
+                notifier.cronCompleted("KiteReminderJob")
+                log.info("Kite reminder job completed successfully")
+                exitProcess(0)
+            }
+            is ReminderResult.Failure -> {
+                notifier.cronFailed("KiteReminderJob", result.error)
+                log.error("Kite reminder job failed: {}", result.error.message, result.error)
+                exitProcess(1)
+            }
         }
     }
 }

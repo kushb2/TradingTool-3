@@ -34,6 +34,7 @@ import com.tradingtool.core.strategy.remora.RemoraSignalWriteDao
 import com.tradingtool.core.stock.service.StockDetailService
 import com.tradingtool.core.stock.service.StockService
 import com.tradingtool.core.telegram.TelegramApiClient
+import com.tradingtool.core.telegram.TelegramNotifier
 import com.tradingtool.core.telegram.TelegramSender
 import com.tradingtool.core.trade.dao.TradeReadDao
 import com.tradingtool.core.trade.dao.TradeWriteDao
@@ -169,6 +170,11 @@ class ServiceModule(
     @Singleton
     fun provideTelegramSender(telegramApiClient: TelegramApiClient): TelegramSender =
         TelegramSender(telegramApiClient = telegramApiClient)
+
+    @Provides
+    @Singleton
+    fun provideTelegramNotifier(sender: TelegramSender): TelegramNotifier =
+        TelegramNotifier(sender)
 
     @Provides
     @Singleton
