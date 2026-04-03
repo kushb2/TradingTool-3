@@ -27,6 +27,9 @@ interface StockReadDao {
     @SqlQuery("SELECT ${StockColumns.ALL_WITH_TAGS} FROM public.${Tables.STOCKS} WHERE ${StockColumns.SYMBOL} = :symbol AND ${StockColumns.EXCHANGE} = :exchange LIMIT 1")
     fun getBySymbol(@Bind("symbol") symbol: String, @Bind("exchange") exchange: String): Stock?
 
+    @SqlQuery("SELECT ${StockColumns.ALL_WITH_TAGS} FROM public.${Tables.STOCKS} WHERE ${StockColumns.INSTRUMENT_TOKEN} = :instrumentToken LIMIT 1")
+    fun getByInstrumentToken(@Bind("instrumentToken") instrumentToken: Long): Stock?
+
     @SqlQuery("SELECT ${StockColumns.ALL_WITH_TAGS} FROM public.${Tables.STOCKS} ORDER BY ${StockColumns.CREATED_AT} DESC")
     fun listAll(): List<Stock>
 

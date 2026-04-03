@@ -66,16 +66,18 @@ class IndicatorService(
 
         val cached = redis.get(redisKey)
         if (cached != null) {
-            return deserializeOrLog(cached, "tag=${tag ?: "ALL"}") {
+            val cachedIndicators = deserializeOrLog(cached, "redis:$redisKey") {
                 json.decodeFromString<List<ComputedIndicators>>(it)
-            } ?: emptyList()
+            }
+            if (cachedIndicators != null) {
+                return cachedIndicators
+            }
+
+            log.warn("Deleting unreadable Redis indicator cache for key={}", redisKey)
+            redis.delete(redisKey)
         }
 
-        val indicators = if (tag == null) loadAllIndicatorsFromDb() else loadTagIndicatorsFromDb(tag)
-        if (indicators.isNotEmpty()) {
-            redis.set(redisKey, json.encodeToString(indicators), config.indicatorsTtlSeconds)
-        }
-        return indicators
+        return loadIndicatorsFromDbAndCache(tag, redisKey)
     }
 
     /**
@@ -104,6 +106,7 @@ class IndicatorService(
         log.info("Starting indicator sync for ${stocks.size} stocks (onlyNeedsRefresh=$onlyNeedsRefresh)")
 
         val results = syncStocksSequentially(kiteClient, stocks)
+        pushAllIndicatorsToRedis(results)
         pushTagIndicatorsToRedis(stocks, results)
 
         log.info("Indicator sync complete: ${results.size}/${stocks.size} stocks succeeded")
@@ -122,7 +125,32 @@ class IndicatorService(
         requireSuccessfulSync(stocks.size, results.size, "tag=$tag")
     }
 
+    /** Refreshes indicators for a single stock by instrument token. */
+    suspend fun refreshStock(kiteClient: KiteConnectClient, instrumentToken: Long) {
+        val stock = stockHandler.read { it.getByInstrumentToken(instrumentToken) }
+            ?: throw IllegalArgumentException("Stock with instrument token $instrumentToken not found")
+
+        log.info("Starting indicator sync for ${stock.symbol} (token=$instrumentToken)")
+
+        val results = syncStocksSequentially(kiteClient, listOf(stock))
+        pushTagIndicatorsToRedis(listOf(stock), results)
+
+        log.info("Indicator sync complete for ${stock.symbol}: ${if (results.isNotEmpty()) "succeeded" else "failed"}")
+        requireSuccessfulSync(1, results.size, "stock ${stock.symbol} (token=$instrumentToken)")
+    }
+
     // ── Private pipeline ──────────────────────────────────────────────────────
+
+    private suspend fun loadIndicatorsFromDbAndCache(
+        tag: String?,
+        redisKey: String,
+    ): List<ComputedIndicators> {
+        val indicators = if (tag == null) loadAllIndicatorsFromDb() else loadTagIndicatorsFromDb(tag)
+        if (indicators.isNotEmpty()) {
+            redis.set(redisKey, json.encodeToString(indicators), config.indicatorsTtlSeconds)
+        }
+        return indicators
+    }
 
     private suspend fun syncStocksSequentially(
         kiteClient: KiteConnectClient,
@@ -224,6 +252,18 @@ class IndicatorService(
                 }
             }.awaitAll()
         }
+    }
+
+    private suspend fun pushAllIndicatorsToRedis(computedResults: Map<Long, ComputedIndicators>) {
+        if (computedResults.isEmpty()) {
+            return
+        }
+
+        redis.set(
+            "watchlist:indicators:ALL",
+            json.encodeToString(computedResults.values.toList()),
+            config.indicatorsTtlSeconds,
+        )
     }
 
     private suspend fun loadTagIndicatorsFromDb(tag: String): List<ComputedIndicators> {
