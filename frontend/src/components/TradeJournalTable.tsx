@@ -2,8 +2,11 @@ import { CloseCircleOutlined, DeleteOutlined, LogoutOutlined } from "@ant-design
 import { Button, DatePicker, Form, Input, Modal, Space, Table, Tag, Tooltip, Typography, message } from "antd";
 import type { ColumnType } from "antd/es/table";
 import dayjs from "dayjs";
-import { useState } from "react";
-import type { CloseTradeInput, TradeWithTargets } from "../types";
+import { useMemo, useState } from "react";
+import { useStockQuotes } from "../hooks/useStockQuotes";
+import type { CloseTradeInput, GttTarget, TradeWithTargets } from "../types";
+import { deriveSignalConfigFromTrade } from "../utils/tradeSessionSignals";
+import { TradeMarketHistoryPanel } from "./TradeMarketHistoryPanel";
 
 const { Text } = Typography;
 
@@ -21,6 +24,19 @@ interface CloseModalState {
   avgBuyPrice: string;
 }
 
+function formatPrice(value: number | null | undefined): string {
+  if (value === null || value === undefined) return "-";
+  return `₹${value.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function getWeekdayLabel(date: string): string {
+  const [year, month, day] = date.split("-").map((part) => Number.parseInt(part, 10));
+  if (!year || !month || !day) return "";
+  const weekday = new Date(Date.UTC(year, month - 1, day)).getUTCDay();
+  const labels = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
+  return labels[weekday] ?? "";
+}
+
 export function TradeJournalTable({
   trades,
   onClose,
@@ -33,6 +49,13 @@ export function TradeJournalTable({
   const [closeDate, setCloseDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [closing, setClosing] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
+  const [expandedHistoryRows, setExpandedHistoryRows] = useState<number[]>([]);
+
+  const openSymbols = useMemo(
+    () => trades.filter((item) => !item.trade.close_price).map((item) => item.trade.nse_symbol),
+    [trades],
+  );
+  const { quotesBySymbol } = useStockQuotes(openSymbols);
 
   const handleDeleteConfirm = (tradeId: number) => {
     Modal.confirm({
@@ -54,7 +77,7 @@ export function TradeJournalTable({
   const handleCloseSubmit = async () => {
     if (!closeModal) return;
     const price = parseFloat(closePrice);
-    if (isNaN(price) || price <= 0) {
+    if (Number.isNaN(price) || price <= 0) {
       message.error("Enter a valid close price");
       return;
     }
@@ -81,7 +104,9 @@ export function TradeJournalTable({
         <div>
           <Text strong style={{ fontSize: 14, color: "#1a1a2e" }}>{record.trade.nse_symbol}</Text>
           <div>
-            <Text type="secondary" style={{ fontSize: 11 }}>{record.trade.trade_date}</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              {getWeekdayLabel(record.trade.trade_date)} · {record.trade.trade_date}
+            </Text>
           </div>
         </div>
       ),
@@ -107,12 +132,41 @@ export function TradeJournalTable({
       },
     },
     {
-      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>TODAY'S LOW</Text>,
-      key: "today_low",
-      width: 110,
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>LTP</Text>,
+      key: "ltp",
+      width: 120,
+      render: (_, record) => {
+        const quote = quotesBySymbol[record.trade.nse_symbol.toUpperCase()];
+        return <Text style={{ fontWeight: 600, color: "#1a1a2e" }}>{formatPrice(quote?.ltp)}</Text>;
+      },
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>DAY RANGE</Text>,
+      key: "day_range",
+      width: 155,
+      render: (_, record) => {
+        const quote = quotesBySymbol[record.trade.nse_symbol.toUpperCase()];
+        return (
+          <div>
+            <Text style={{ fontWeight: 500, color: "#595959", fontSize: 12 }}>
+              L: {formatPrice(quote?.day_low)}
+            </Text>
+            <div>
+              <Text style={{ fontWeight: 500, color: "#595959", fontSize: 12 }}>
+                H: {formatPrice(quote?.day_high)}
+              </Text>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>ENTRY DAY LOW</Text>,
+      key: "entry_day_low",
+      width: 125,
       render: (_, record) => {
         const low = record.trade.today_low;
-        if (!low) return <Text type="secondary">—</Text>;
+        if (!low) return <Text type="secondary">-</Text>;
         return <Text style={{ fontWeight: 500, color: "#595959" }}>₹{low}</Text>;
       },
     },
@@ -152,33 +206,40 @@ export function TradeJournalTable({
       title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>TARGETS</Text>,
       dataIndex: "gtt_targets",
       key: "gtt_targets",
-      width: 260,
-      render: (targets: any[]) => {
+      width: 310,
+      render: (targets: GttTarget[]) => {
         const greenShades = ["#f6ffed", "#d9f7be", "#b7eb8f", "#95de64", "#73d13d", "#52c41a", "#389e0d"];
         const textShades = ["#389e0d", "#389e0d", "#237804", "#237804", "#135200", "#135200", "#092b00"];
         return (
-          <Space wrap size={4}>
-            {targets.map((target: any, i: number) => {
-              const shade = Math.min(i, greenShades.length - 1);
-              return (
-                <Tag
-                  key={target.percent}
-                  style={{
-                    background: greenShades[shade],
-                    borderColor: "#b7eb8f",
-                    color: textShades[shade],
-                    fontWeight: 600,
-                    fontSize: 11,
-                    borderRadius: 6,
-                    padding: "1px 7px",
-                    margin: 0,
-                  }}
-                >
-                  +{target.percent}% ₹{target.price}
-                </Tag>
-              );
-            })}
-          </Space>
+          <div>
+            <Space wrap size={4}>
+              {targets.map((target, i) => {
+                const shade = Math.min(i, greenShades.length - 1);
+                return (
+                  <Tag
+                    key={target.percent}
+                    style={{
+                      background: greenShades[shade],
+                      borderColor: "#b7eb8f",
+                      color: textShades[shade],
+                      fontWeight: 600,
+                      fontSize: 11,
+                      borderRadius: 6,
+                      padding: "1px 7px",
+                      margin: 0,
+                    }}
+                  >
+                    +{target.percent}% ₹{target.price}
+                  </Tag>
+                );
+              })}
+            </Space>
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" style={{ fontSize: 11 }}>
+                Strategy swing can be based on Entry Day Low or Avg Entry
+              </Text>
+            </div>
+          </div>
         );
       },
     },
@@ -188,14 +249,18 @@ export function TradeJournalTable({
       width: 150,
       render: (_, record) => {
         const notes = record.trade.notes;
-        if (!notes) return <Text type="secondary">—</Text>;
+        if (!notes) return <Text type="secondary">-</Text>;
         const isExpanded = expandedNotes.has(record.trade.id);
         return (
           <Tooltip title={notes}>
             <span
               onClick={() => {
                 const next = new Set(expandedNotes);
-                isExpanded ? next.delete(record.trade.id) : next.add(record.trade.id);
+                if (isExpanded) {
+                  next.delete(record.trade.id);
+                } else {
+                  next.add(record.trade.id);
+                }
                 setExpandedNotes(next);
               }}
               style={{ cursor: "pointer", color: "#595959", fontSize: 12 }}
@@ -212,9 +277,22 @@ export function TradeJournalTable({
     {
       title: "",
       key: "action",
-      width: 80,
+      width: 170,
       render: (_, record) => (
-        <Space size={2}>
+        <Space size={2} wrap>
+          <Button
+            size="small"
+            type={expandedHistoryRows.includes(record.trade.id) ? "default" : "text"}
+            onClick={() =>
+              setExpandedHistoryRows((prev) =>
+                prev.includes(record.trade.id)
+                  ? prev.filter((id) => id !== record.trade.id)
+                  : [...prev, record.trade.id],
+              )
+            }
+          >
+            10D Context
+          </Button>
           <Tooltip title="Close position">
             <Button
               type="text"
@@ -244,7 +322,6 @@ export function TradeJournalTable({
     },
   ];
 
-  // Closed view: show exit price + P&L instead of stop loss + targets
   const closedColumns: ColumnType<TradeWithTargets>[] = [
     {
       title: <Text style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, color: "#8c8c8c" }}>STOCK</Text>,
@@ -255,7 +332,9 @@ export function TradeJournalTable({
         <div>
           <Text strong style={{ fontSize: 14, color: "#595959" }}>{record.trade.nse_symbol}</Text>
           <div>
-            <Text type="secondary" style={{ fontSize: 11 }}>Opened {record.trade.trade_date}</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>
+              Opened {getWeekdayLabel(record.trade.trade_date)} · {record.trade.trade_date}
+            </Text>
           </div>
         </div>
       ),
@@ -295,7 +374,7 @@ export function TradeJournalTable({
       key: "pnl",
       width: 160,
       render: (_, record) => {
-        const closeP = parseFloat(record.trade.close_price!);
+        const closeP = parseFloat(record.trade.close_price ?? "0");
         const avgP = parseFloat(record.trade.avg_buy_price);
         const qty = record.trade.quantity;
         const pnl = (closeP - avgP) * qty;
@@ -328,7 +407,7 @@ export function TradeJournalTable({
       width: 150,
       render: (_, record) => {
         const notes = record.trade.notes;
-        if (!notes) return <Text type="secondary">—</Text>;
+        if (!notes) return <Text type="secondary">-</Text>;
         return (
           <Tooltip title={notes}>
             <Text style={{ color: "#595959", fontSize: 12 }}>
@@ -356,13 +435,11 @@ export function TradeJournalTable({
     },
   ];
 
-  // Derive close price preview in the modal
   const avgBuyNum = closeModal ? parseFloat(closeModal.avgBuyPrice) : 0;
   const closePriceNum = parseFloat(closePrice);
-  const modalPnl =
-    closeModal && !isNaN(closePriceNum) && closePriceNum > 0
-      ? closePriceNum - avgBuyNum
-      : null;
+  const modalPnl = closeModal && !Number.isNaN(closePriceNum) && closePriceNum > 0
+    ? closePriceNum - avgBuyNum
+    : null;
 
   return (
     <>
@@ -371,17 +448,35 @@ export function TradeJournalTable({
         dataSource={trades}
         rowKey={(r) => r.trade.id}
         size="small"
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1200 }}
         pagination={{ pageSize: 20, showSizeChanger: true, size: "small" }}
         onRow={() => ({ style: { verticalAlign: "top" } })}
+        expandable={
+          isClosed
+            ? undefined
+            : {
+                expandedRowKeys: expandedHistoryRows,
+                showExpandColumn: false,
+                expandedRowRender: (record) => (
+                  <TradeMarketHistoryPanel
+                    symbol={record.trade.nse_symbol}
+                    days={10}
+                    defaultExpanded
+                    showToggle={false}
+                    title="10D Context"
+                    signalConfig={deriveSignalConfigFromTrade(record.trade) ?? undefined}
+                    showSignalLegend
+                  />
+                ),
+              }
+        }
       />
 
-      {/* Close Position Modal */}
       <Modal
         title={
           <span>
             <CloseCircleOutlined style={{ color: "#00b386", marginRight: 8 }} />
-            Close position — {closeModal?.symbol}
+            Close position - {closeModal?.symbol}
           </span>
         }
         open={!!closeModal}
@@ -418,7 +513,6 @@ export function TradeJournalTable({
           </Form.Item>
         </Form>
 
-        {/* Live P&L preview */}
         {modalPnl !== null && (
           <div
             style={{

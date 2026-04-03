@@ -20,11 +20,10 @@ import org.slf4j.LoggerFactory
 import java.util.Date
 
 /**
- * Fetches 7 trading days of enriched OHLCV data for a stock from Kite.
+ * Fetches N trading days of enriched OHLCV data for a stock from Kite.
  *
- * Fetches 45 calendar days to guarantee ≥30 trading days (accounts for weekends/holidays).
- * From those 30 bars: computes 20-day avg volume and RSI14 warmup, then returns the last 7 days
- * enriched with daily % change, RSI14, and volume vs 20-day average ratio.
+ * Expands the calendar lookback based on requested [days] to account for weekends/holidays.
+ * Also includes extra warmup bars for RSI14 and 20-day average volume.
  */
 class StockDetailService(
     private val stockHandler: StockJdbiHandler,
@@ -32,12 +31,13 @@ class StockDetailService(
     private val log = LoggerFactory.getLogger(StockDetailService::class.java)
     private val ist = ZoneId.of("Asia/Kolkata")
 
-    suspend fun getDetail(symbol: String, kiteClient: KiteConnectClient): StockDetailResponse? {
+    suspend fun getDetail(symbol: String, kiteClient: KiteConnectClient, days: Int = 7): StockDetailResponse? {
         val stock = stockHandler.read { it.getBySymbol(symbol, "NSE") } ?: return null
 
         val today = LocalDate.now(ist)
-        // 45 calendar days ≈ 30 trading days (enough for RSI14 warmup + 20d avg volume + 7 visible days)
-        val fromDate = Date.from(today.minusDays(45).atStartOfDay(ist).toInstant())
+        // ~3x session window + indicator warmup, with a safe minimum.
+        val lookbackCalendarDays = maxOf(45, days * 3 + 20)
+        val fromDate = Date.from(today.minusDays(lookbackCalendarDays.toLong()).atStartOfDay(ist).toInstant())
         val toDate = Date.from(today.atStartOfDay(ist).toInstant())
 
         val history = withContext(Dispatchers.IO) {
@@ -63,9 +63,9 @@ class StockDetailService(
 
         // Need index >= 1 to compute daily change vs previous close
         val endIdx = series.endIndex
-        val startIdx = maxOf(endIdx - 6, 1)
+        val startIdx = maxOf(endIdx - (days - 1), 1)
 
-        val days = (startIdx..endIdx).map { i ->
+        val enrichedDays = (startIdx..endIdx).map { i ->
             val bar = series.getBar(i)
             val prevClose = series.getBar(i - 1).closePrice.doubleValue()
             val close = bar.closePrice.doubleValue()
@@ -84,7 +84,7 @@ class StockDetailService(
             )
         }
 
-        return StockDetailResponse(symbol = symbol, avgVolume20d = avgVol20d, days = days)
+        return StockDetailResponse(symbol = symbol, avgVolume20d = avgVol20d, days = enrichedDays)
     }
 
     // Same parsing logic as IndicatorService.buildBarSeries — Kite timestamps are always IST.

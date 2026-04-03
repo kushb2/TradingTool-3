@@ -138,7 +138,7 @@ export function TradeEntryForm({ onSubmit, loading = false }: TradeEntryFormProp
         />
       </Form.Item>
 
-      <Form.Item label="Today's Low (₹)">
+      <Form.Item label="Entry Day Low (Buy Date Low) (₹)">
         <Input
           type="number"
           step="0.01"

@@ -4,9 +4,11 @@ import com.google.inject.Inject
 import com.tradingtool.core.di.ResourceScope
 import com.tradingtool.core.kite.InstrumentCache
 import com.tradingtool.core.kite.KiteConnectClient
+import com.tradingtool.core.kite.LiveMarketService
 import com.tradingtool.core.kite.TickerSubscriptions
 import com.tradingtool.core.model.stock.CreateStockInput
 import com.tradingtool.core.model.stock.InstrumentSearchResult
+import com.tradingtool.core.model.stock.StockQuoteSnapshot
 import com.tradingtool.core.model.stock.UpdateStockPayload
 import com.tradingtool.core.stock.service.StockDetailService
 import com.tradingtool.core.stock.service.StockService
@@ -47,6 +49,7 @@ class StockResource @Inject constructor(
     private val tickerSubscriptions: TickerSubscriptions,
     private val stockDetailService: StockDetailService,
     private val kiteClient: KiteConnectClient,
+    private val liveMarketService: LiveMarketService,
     private val instrumentCache: InstrumentCache,
 ) {
     private val ioScope = resourceScope.ioScope
@@ -162,18 +165,64 @@ class StockResource @Inject constructor(
     // ── Stock Detail ──────────────────────────────────────────────────────────
 
     /**
-     * Returns 7-day OHLCV detail: daily % change, RSI14, volume vs 20-day average.
+     * Returns N-day OHLCV detail: daily % change, RSI14, volume vs 20-day average.
      * Fetches live from Kite — not cached, do not call in tight loops.
      */
     @GET
     @Path("/by-symbol/{symbol}/detail")
-    fun getDetail(@PathParam("symbol") symbol: String): CompletableFuture<Response> = ioScope.endpoint {
+    fun getDetail(
+        @PathParam("symbol") symbol: String,
+        @QueryParam("days") days: Int?,
+    ): CompletableFuture<Response> = ioScope.endpoint {
         val sym = symbol.trim().uppercase()
         if (sym.isEmpty()) return@endpoint badRequest("Symbol is required")
         if (!kiteClient.isAuthenticated) return@endpoint serviceUnavailable("Kite is not authenticated")
-        val detail = stockDetailService.getDetail(sym, kiteClient)
+        val dayCount = days ?: 7
+        if (dayCount !in 1..200) return@endpoint badRequest("Query parameter 'days' must be between 1 and 200")
+        val detail = stockDetailService.getDetail(sym, kiteClient, dayCount)
             ?: return@endpoint notFound("Stock '$sym' not found in watchlist")
         ok(detail)
+    }
+
+    /**
+     * GET /api/stocks/quotes?symbols=INFY,TCS,RELIANCE
+     * Returns a live quote snapshot for each requested NSE symbol.
+     */
+    @GET
+    @Path("/quotes")
+    fun getQuotes(@QueryParam("symbols") symbols: String?): CompletableFuture<Response> = ioScope.endpoint {
+        val requestedSymbols = symbols
+            ?.split(",")
+            ?.map { it.trim().uppercase() }
+            ?.filter { it.isNotEmpty() }
+            ?.distinct()
+            ?: emptyList()
+        if (requestedSymbols.isEmpty()) return@endpoint badRequest("Query parameter 'symbols' is required")
+
+        val stocks = requestedSymbols.associateWith { sym -> stockService.getBySymbol(sym, "NSE") }
+        val instruments = stocks.values
+            .filterNotNull()
+            .map { "${it.exchange}:${it.symbol}" }
+
+        val quotes = liveMarketService.getQuotes(instruments)
+        val updatedAt = java.time.Instant.now().toString()
+
+        val snapshots = requestedSymbols.map { symbol ->
+            val stock = stocks[symbol]
+            val quote = stock?.let { quotes["${it.exchange}:${it.symbol}"] }
+            val ohlc = quote?.ohlc
+
+            StockQuoteSnapshot(
+                symbol = symbol,
+                ltp = quote?.lastPrice,
+                dayOpen = ohlc?.open,
+                dayHigh = ohlc?.high,
+                dayLow = ohlc?.low,
+                volume = quote?.volumeTradedToday?.toLong(),
+                updatedAt = updatedAt,
+            )
+        }
+        ok(snapshots)
     }
 
     // ── Instruments ───────────────────────────────────────────────────────────

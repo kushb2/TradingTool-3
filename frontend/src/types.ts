@@ -111,6 +111,16 @@ export interface StockDetailResponse {
   days: DayDetail[];
 }
 
+export interface StockQuoteSnapshot {
+  symbol: string;
+  ltp: number | null;
+  day_open: number | null;
+  day_high: number | null;
+  day_low: number | null;
+  volume: number | null;
+  updated_at: string;
+}
+
 // ==================== Remora Strategy ====================
 
 export interface RemoraSignal {

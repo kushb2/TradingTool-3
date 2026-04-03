@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { getJson } from "../utils/api";
 import type { StockDetailResponse } from "../types";
 
-export function useStockDetail(symbol: string | null) {
+export function useStockDetail(symbol: string | null, days: number = 7) {
   const [data, setData] = useState<StockDetailResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -15,11 +15,11 @@ export function useStockDetail(symbol: string | null) {
     }
     setLoading(true);
     setError(null);
-    getJson<StockDetailResponse>(`/api/stocks/by-symbol/${symbol}/detail`)
+    getJson<StockDetailResponse>(`/api/stocks/by-symbol/${symbol}/detail?days=${days}`)
       .then(setData)
       .catch((e) => setError(e instanceof Error ? e.message : "Failed to load detail"))
       .finally(() => setLoading(false));
-  }, [symbol]);
+  }, [symbol, days]);
 
   return { data, loading, error };
 }
