@@ -6,12 +6,13 @@ import com.tradingtool.core.database.CandleJdbiHandler
 import com.tradingtool.core.database.RedisHandler
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
+import java.time.LocalDateTime
 
 /**
  * A caching wrapper for historical candle data.
  * Implements the Cache-Aside strategy:
  *   1. Check Redis for a key (e.g., candles:INFY:day).
- *   2. If hit, deserialize the JSON string into List<DailyCandle>.
+ *   2. If hit, deserialize the JSON string.
  *   3. If miss, fetch from JDBI, serialize to JSON, store in Redis with TTL, and return.
  *
  * This reduces latency from Supabase (300-500ms) to Redis (2-5ms).
@@ -40,10 +41,6 @@ class CandleCacheService(
                     cachedJson,
                     object : TypeReference<List<DailyCandle>>() {}
                 )
-                // Note: The 'from' and 'to' filters might be different than what's in cache.
-                // For simplicity, we assume if it's in cache, it's the full history needed.
-                // If it's not enough, we might need a more sophisticated key or validation.
-                // Given the issue description, we are fetching 200 candles which is constant.
                 val filtered = candles.filter { it.candleDate in from..to }
                 if (filtered.isNotEmpty()) {
                     log.debug("Cache hit for {} ({} candles)", symbol, filtered.size)
@@ -51,12 +48,12 @@ class CandleCacheService(
                 }
             }
         } catch (e: Exception) {
-            log.warn("Redis error fetching candles for {}: {}", symbol, e.message)
+            log.warn("Redis error fetching daily candles for {}: {}", symbol, e.message)
         }
 
         // 2. Cache Miss: Fetch from DB
         val dbCandles = candleHandler.read { it.getDailyCandles(token, from, to) }
-        log.info("Cache miss for {} — fetched {} from DB", symbol, dbCandles.size)
+        log.info("Cache miss for daily candles {} — fetched {} from DB", symbol, dbCandles.size)
 
         // 3. Update Cache
         if (dbCandles.isNotEmpty()) {
@@ -64,7 +61,55 @@ class CandleCacheService(
                 val json = objectMapper.writeValueAsString(dbCandles)
                 redis.set(key, json, ttlSeconds)
             } catch (e: Exception) {
-                log.warn("Failed to update cache for {}: {}", symbol, e.message)
+                log.warn("Failed to update daily cache for {}: {}", symbol, e.message)
+            }
+        }
+
+        return dbCandles
+    }
+
+    suspend fun getIntradayCandles(
+        token: Long,
+        symbol: String,
+        interval: String,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): List<IntradayCandle> {
+        val key = "candles:$symbol:$interval"
+
+        // 1. Try Cache
+        try {
+            val cachedJson = redis.get(key)
+            if (cachedJson != null) {
+                val candles: List<IntradayCandle> = objectMapper.readValue(
+                    cachedJson,
+                    object : TypeReference<List<IntradayCandle>>() {}
+                )
+                val filtered = candles.filter { it.candleTimestamp in from..to }
+                if (filtered.isNotEmpty()) {
+                    log.debug("Cache hit for {}/{} ({} candles)", symbol, interval, filtered.size)
+                    return filtered
+                }
+            }
+        } catch (e: Exception) {
+            log.warn("Redis error fetching intraday candles for {}/{}: {}", symbol, interval, e.message)
+        }
+
+        // 2. Cache Miss: Fetch from DB
+        // For simplicity, we just fetch what's requested.
+        val dbCandles = candleHandler.read { it.getMondayMorningCandles(token, interval, from, to) }
+        // Note: The CandleReadDao only has 'getMondayMorningCandles' for intraday currently.
+        // If we need general intraday candles, we should add that to CandleReadDao.
+        // For now, we mirror the existing DAO capabilities.
+        log.info("Cache miss for intraday candles {}/{} — fetched {} from DB", symbol, interval, dbCandles.size)
+
+        // 3. Update Cache
+        if (dbCandles.isNotEmpty()) {
+            try {
+                val json = objectMapper.writeValueAsString(dbCandles)
+                redis.set(key, json, ttlSeconds)
+            } catch (e: Exception) {
+                log.warn("Failed to update intraday cache for {}/{}: {}", symbol, interval, e.message)
             }
         }
 

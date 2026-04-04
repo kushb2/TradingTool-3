@@ -81,11 +81,16 @@ export function ScreenerOverview({ onSelectSymbol }: ScreenerOverviewProps) {
       }
     },
     {
-      title: "Buy zone",
+      title: "Buy Day Lows",
       key: "buyZone",
       render: (_: any, record: WeeklyPatternResult) => {
-        if (!record.patternConfirmed) return <Text type="secondary">-</Text>;
-        return <Text strong style={{ color: '#0958d9' }}>₹{record.buyDayLowMin} - ₹{record.buyDayLowMax}</Text>;
+        const color = record.patternConfirmed ? '#0958d9' : '#8c8c8c';
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <Text strong style={{ color }}>₹{record.buyDayLowMin} - ₹{record.buyDayLowMax}</Text>
+            <Text type="secondary" style={{ fontSize: 11 }}>Hist. {record.buyDay} range</Text>
+          </div>
+        );
       }
     },
     {
