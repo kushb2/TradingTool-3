@@ -146,57 +146,67 @@ class WeeklyPatternService(
                     wCopy.buyRsi = currentRsi
 
                     // 1% Rebound Entry Trigger Logic
-                    if (bCandle.high >= bCandle.low * 1.01) {
-                        if (currentRsi >= 70.0 || currentRsi >= max200Rsi * 0.90) {
-                        wCopy.entryTriggered = false
-                        wCopy.reasoning = "Overbought"
+                    val potentialEntryPrice = bCandle.low * 1.01
+                    
+                    // Shadow Price: Always calculate what the entry WOULD have been for visualization
+                    wCopy.buyPriceActual = potentialEntryPrice
+                    val thuCandleForShadow = wCopy.dailyCandles[4] ?: wCopy.dailyCandles[3] ?: wCopy.dailyCandles[2]
+                    if (thuCandleForShadow != null) {
+                        wCopy.sellPriceActual = thuCandleForShadow.close
+                    }
+
+                    if (bCandle.high >= potentialEntryPrice) {
+                        if (currentRsi >= 70.0 || (max200Rsi > 0 && currentRsi >= max200Rsi * 0.90)) {
+                            wCopy.entryTriggered = false
+                            wCopy.reasoning = "Overbought"
+                            // Clear actual prices for "No Entry" but UI can still show shadow via other means if needed
+                            // For now, let's KEEP them so Kush can see Monday/Thursday as requested
                         } else {
-                        wCopy.entryTriggered = true
-                        val entryPrice = bCandle.low * 1.01
-                        wCopy.buyPriceActual = entryPrice
+                            wCopy.entryTriggered = true
+                            val entryPrice = potentialEntryPrice
+                            
+                            val targetPrice = entryPrice * 1.05
+                            val stopLossPrice = entryPrice * 0.97
 
-                        val targetPrice = entryPrice * 1.05
-                        val stopLossPrice = entryPrice * 0.97
-
-                        // Simulate day-by-day progression from (BuyDay + 1) to Thursday
-                        var exitFound = false
-                        for (dayIdx in (buy + 1)..4) { 
-                            val dCandle = wCopy.dailyCandles[dayIdx]
-                            if (dCandle != null) {
-                                // 1. Check Stop Loss First (Conservative)
-                                if (dCandle.low <= stopLossPrice) {
-                                    wCopy.sellPriceActual = stopLossPrice
-                                    wCopy.swingPct = -3.0
-                                    wCopy.reasoning = "Stop Loss Hit"
-                                    exitFound = true
-                                    break
+                            // Simulate day-by-day progression
+                            var exitFound = false
+                            for (dayIdx in (buy + 1)..4) { 
+                                val dCandle = wCopy.dailyCandles[dayIdx]
+                                if (dCandle != null) {
+                                    if (dCandle.low <= stopLossPrice) {
+                                        wCopy.sellPriceActual = stopLossPrice
+                                        wCopy.swingPct = -3.0
+                                        wCopy.reasoning = "Stop Loss Hit"
+                                        exitFound = true
+                                        break
+                                    }
+                                    if (dCandle.high >= targetPrice) {
+                                        wCopy.sellPriceActual = targetPrice
+                                        wCopy.swingPct = 5.0
+                                        wCopy.swingTargetHit = true
+                                        wCopy.reasoning = "Target Hit (+5%)"
+                                        exitFound = true
+                                        break
+                                    }
                                 }
-                                // 2. Check Target
-                                if (dCandle.high >= targetPrice) {
-                                    wCopy.sellPriceActual = targetPrice
-                                    wCopy.swingPct = 5.0
-                                    wCopy.swingTargetHit = true
-                                    wCopy.reasoning = "Target Hit (+5%)"
-                                    exitFound = true
-                                    break
+                            }
+
+                            if (!exitFound) {
+                                val thuCandle = wCopy.dailyCandles[4] ?: wCopy.dailyCandles[3] ?: wCopy.dailyCandles[2]
+                                if (thuCandle != null) {
+                                    val exitPrice = thuCandle.close
+                                    wCopy.sellPriceActual = exitPrice
+                                    wCopy.swingPct = ((exitPrice - entryPrice) / entryPrice * 100.0).roundTo2()
+                                    wCopy.reasoning = "Thursday Hard Exit"
+                                    if (wCopy.swingPct!! >= 4.0) {
+                                        wCopy.swingTargetHit = true
+                                    }
                                 }
                             }
                         }
-
-                        // 3. Thursday Hard Exit if still open
-                        if (!exitFound) {
-                            val thuCandle = wCopy.dailyCandles[4] ?: wCopy.dailyCandles[3] ?: wCopy.dailyCandles[2]
-                            if (thuCandle != null) {
-                                val exitPrice = thuCandle.close
-                                wCopy.sellPriceActual = exitPrice
-                                wCopy.swingPct = ((exitPrice - entryPrice) / entryPrice * 100.0).roundTo2()
-                                wCopy.reasoning = "Thursday Hard Exit"
-                                if (wCopy.swingPct!! >= 4.0) {
-                                    wCopy.swingTargetHit = true
-                                }
-                            }
-                        }
-                        }
+                    } else {
+                        wCopy.entryTriggered = false
+                        wCopy.reasoning = "No 1% rebound"
                     }
                 }
                 wCopy
@@ -353,21 +363,28 @@ class WeeklyPatternService(
         patternConfirmed = false,
         cycleType = "None",
         reason = reason,
-        buyDayLowMin = 0.0,
-        buyDayLowMax = 0.0,
-    )
+        data class RsiBounds(
+            val current: Double,
+            val min200: Double,
+            val max200: Double,
+        )
 
-    private fun buildRsiBoundsMap(candles: List<DailyCandle>): Map<LocalDate, RsiBounds> {
-        val rsiValues = candles.calculateRsiValues(period = 14, fallback = 50.0)
+        private fun buildRsiBoundsMap(candles: List<DailyCandle>): Map<LocalDate, RsiBounds> {
+            val rsiValues = candles.calculateRsiValues(period = 14, fallback = 50.0)
 
-        return candles.mapIndexed { index, candle ->
-            val currentRsi = rsiValues.getOrNull(index) ?: 50.0
-            val lookbackStart = maxOf(0, index - 200)
-            val max200Rsi = rsiValues.subList(lookbackStart, index).maxOrNull() ?: 70.0
-            candle.candleDate to RsiBounds(current = currentRsi, max200 = max200Rsi)
-        }.toMap()
-    }
+            return candles.mapIndexed { index, candle ->
+                val currentRsi = rsiValues.getOrNull(index) ?: 50.0
+                val lookbackStart = maxOf(0, index - 200)
 
+                // Ensure we have at least some values to calculate min/max
+                val window = if (index > 0) rsiValues.subList(lookbackStart, index) else listOf(currentRsi)
+
+                val max200Rsi = window.maxOrNull() ?: currentRsi
+                val min200Rsi = window.minOrNull() ?: currentRsi
+
+                candle.candleDate to RsiBounds(current = currentRsi, min200 = min200Rsi, max200 = max200Rsi)
+            }.toMap()
+        }
     private fun pearsonCorrel(series: List<Double>, lag: Int): Double {
         if (series.size <= lag + 1) return 0.0
         val x = series.drop(lag)
